@@ -1,5 +1,5 @@
 import { v4 as uuid } from "uuid";
-import { runCompletion } from "./claude";
+import { runCompletion } from "./llm";
 import { SYSTEM_PROMPTS, TaskType } from "./prompts";
 
 export type TaskStatus = "queued" | "in_progress" | "completed" | "failed";

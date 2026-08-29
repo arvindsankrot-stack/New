@@ -4,7 +4,7 @@ import path from "path";
 import { agentPool, ChainSpec } from "./agentPool";
 import { scheduler } from "./scheduler";
 import { TaskType, SYSTEM_PROMPTS, CHAT_SYSTEM_PROMPT } from "./prompts";
-import { runCompletion, ChatMessage } from "./claude";
+import { runCompletion, ChatMessage } from "./llm";
 
 const app = express();
 app.use(cors());

@@ -14,17 +14,20 @@ This is a **research and content-drafting assistant**, not an autonomous trader:
 - The "digital product" task drafts marketing/content copy — it will not write
   fake reviews, fake testimonials, or income guarantees.
 - "Training" here means task-specific system prompts on top of an existing LLM
-  (Claude), not a custom fine-tuning pipeline.
+  (Gemini), not a custom fine-tuning pipeline.
 
 ## Backend (`server/`)
 
 Node/TypeScript + Express. In-memory task queue with a fixed pool of workers;
 whenever a worker is free it grabs the next queued task (buffet-style dispatch),
-runs it through Claude with a task-type-specific system prompt, and stores the result.
+runs it through Gemini with a task-type-specific system prompt, and stores the result.
+
+Uses Google's Gemini API, which has a free tier (no credit card required) —
+get a key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 
 ```bash
 cd server
-cp .env.example .env   # add your ANTHROPIC_API_KEY
+cp .env.example .env   # add your GEMINI_API_KEY
 npm install
 npm run dev             # http://localhost:3000
 ```
@@ -72,7 +75,8 @@ To reach it from your phone (not just your dev machine), deploy the
    - Root directory: `server`
    - Build command: `npm install && npm run build`
    - Start command: `npm start`
-3. Add an environment variable `ANTHROPIC_API_KEY` with your key.
+3. Render prompts for `GEMINI_API_KEY` (declared in `render.yaml`) — paste
+   your free key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 4. Deploy. Render gives you a URL like `https://hermes-agent.onrender.com`
    — open that on your phone whenever you want, bookmark it or add it to
    your home screen (Safari → Share → Add to Home Screen) for an app-like icon.
