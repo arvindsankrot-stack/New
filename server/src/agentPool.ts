@@ -1,5 +1,5 @@
 import { v4 as uuid } from "uuid";
-import { runCompletion } from "./llm";
+import { runCompletion, cleanErrorMessage } from "./llm";
 import { SYSTEM_PROMPTS, TaskType, IDEA_INSTRUCTIONS, RESEARCH_TASK_TYPES } from "./prompts";
 
 export type TaskStatus = "queued" | "in_progress" | "completed" | "failed";
@@ -132,7 +132,7 @@ class AgentPool {
       }
     } catch (err) {
       task.status = "failed";
-      task.error = err instanceof Error ? err.message : "Unknown error";
+      task.error = cleanErrorMessage(err);
     } finally {
       task.updatedAt = new Date().toISOString();
       this.idleWorkers.push(workerId);

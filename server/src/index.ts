@@ -5,7 +5,7 @@ import { agentPool, ChainSpec } from "./agentPool";
 import { scheduler } from "./scheduler";
 import { paperPortfolio, PositionSide } from "./paperTrading";
 import { TaskType, SYSTEM_PROMPTS, CHAT_SYSTEM_PROMPT } from "./prompts";
-import { runCompletion, ChatMessage } from "./llm";
+import { runCompletion, ChatMessage, cleanErrorMessage } from "./llm";
 
 const app = express();
 app.use(cors());
@@ -52,7 +52,7 @@ app.post("/chat", async (req, res) => {
     const reply = await runCompletion(CHAT_SYSTEM_PROMPT, messages);
     res.json({ reply });
   } catch (err) {
-    res.status(502).json({ error: err instanceof Error ? err.message : "completion failed" });
+    res.status(502).json({ error: cleanErrorMessage(err) });
   }
 });
 

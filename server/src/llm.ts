@@ -8,6 +8,14 @@ export interface ChatMessage {
   content: string;
 }
 
+// The Gemini SDK's error messages often carry a long embedded JSON blob.
+// Keep only the first line and cap the length so errors shown to users stay readable.
+export function cleanErrorMessage(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  const firstLine = raw.split("\n")[0].trim();
+  return firstLine.length > 180 ? `${firstLine.slice(0, 180)}…` : firstLine;
+}
+
 export async function runCompletion(
   systemPrompt: string,
   messages: ChatMessage[],
