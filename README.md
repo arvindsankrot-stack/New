@@ -38,9 +38,12 @@ Endpoints:
 - `GET /tasks` — list all tasks with status/result
 - `GET /tasks/:id` — one task
 - `GET /task-types` — valid `type` values
-- `POST /schedules` — `{ type, prompt, intervalMinutes, chainTo? }` → recurring research, auto-submits a task on that interval (min 5 minutes)
+- `POST /schedules` — `{ type, prompt, intervalMinutes, chainTo?, publishIdea? }` → recurring research, auto-submits a task on that interval (min 5 minutes)
 - `GET /schedules` — list active schedules
 - `DELETE /schedules/:id` — cancel a schedule
+- `POST /paper-positions` — `{ taskId?, label, side: "long"|"short", entryPrice, quantity }` → open a simulated position
+- `GET /paper-positions` — list all simulated positions
+- `POST /paper-positions/:id/close` — `{ exitPrice }` → close a position and compute simulated P&L
 
 ### Automation model
 
@@ -56,6 +59,22 @@ Two automations are supported, both bounded to the task pool itself:
 Neither automation ever leaves the task pool: nothing is published,
 posted, traded, or paid for automatically. Every output lands as a task
 result for a human to read and act on.
+
+### Idea publishing + paper trading
+
+A research task (or schedule) can set `publishIdea: true`. When it completes,
+the model is asked to end its answer with a structured block — a one-line
+idea, a **qualitative** confidence rating (Low/Medium/High — the model's own
+gut-check, explicitly not a calculated probability or backtest), and key
+risks. The task's `idea` field carries the parsed result.
+
+From there, "Add to paper portfolio" opens a **simulated** position: fake
+money, a price and quantity you type in by hand, tracked in-memory. There is
+no market data feed and no connection to any exchange or brokerage — this
+code path cannot place a real trade, by construction, not just by
+configuration. Closing a position takes an exit price you also type in and
+computes simulated P&L. This exists to let you track how the ideas would
+have done, not to execute anything.
 
 ## Web app (`server/public/`)
 

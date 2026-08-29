@@ -99,6 +99,30 @@ body {
 
 .error { color: var(--danger); font-size: 0.85rem; min-height: 1em; }
 
+.idea-block {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.idea-block-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.idea-block-header strong { font-size: 0.85rem; }
+.confidence-pill { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.confidence-pill.low { background: color-mix(in srgb, var(--failed) 20%, transparent); color: var(--failed); }
+.confidence-pill.medium { background: color-mix(in srgb, var(--in_progress) 20%, transparent); color: var(--in_progress); }
+.confidence-pill.high { background: color-mix(in srgb, var(--completed) 20%, transparent); color: var(--completed); }
+.idea-risks { font-size: 0.78rem; color: var(--muted); margin: 4px 0 8px; }
+.idea-caveat { font-size: 0.7rem; color: var(--muted); font-style: italic; margin: 0 0 8px; }
+.track-idea-btn { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 6px 10px; font-size: 0.78rem; font-weight: 600; }
+
+.position-header { display: flex; justify-content: space-between; align-items: center; }
+.side-tag { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; }
+.side-tag.long { background: color-mix(in srgb, var(--completed) 20%, transparent); color: var(--completed); }
+.side-tag.short { background: color-mix(in srgb, var(--failed) 20%, transparent); color: var(--failed); }
+.pnl-positive { color: var(--completed); font-weight: 700; }
+.pnl-negative { color: var(--failed); font-weight: 700; }
+
 dialog { border: none; border-radius: 12px; padding: 0; max-width: 420px; width: 90vw; background: var(--panel); color: var(--text); }
 dialog::backdrop { background: rgba(0,0,0,0.4); }
 

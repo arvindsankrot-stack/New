@@ -13,6 +13,7 @@
       <button class="tab-btn active" data-tab="chat">Chat</button>
       <button class="tab-btn" data-tab="tasks">Agent Pool</button>
       <button class="tab-btn" data-tab="schedules">Schedules</button>
+      <button class="tab-btn" data-tab="portfolio">Paper Portfolio</button>
     </nav>
   </header>
 
@@ -43,6 +44,15 @@
     <ul id="schedule-list" class="card-list"></ul>
   </main>
 
+  <main id="portfolio" class="tab-panel">
+    <div class="panel-header">
+      <h2>Paper Portfolio</h2>
+    </div>
+    <p class="hint">Simulated positions only — fake money, prices you enter by hand, no market data feed, no exchange or brokerage connection. This can never place a real trade.</p>
+    <div id="portfolio-error" class="error"></div>
+    <ul id="portfolio-list" class="card-list"></ul>
+  </main>
+
   <dialog id="new-task-dialog">
     <form id="new-task-form" class="dialog-form">
       <h3>New Task</h3>
@@ -56,7 +66,11 @@
         <input type="checkbox" id="task-chain" />
         Auto-draft a write-up from the result
       </label>
-      <p class="hint">Nothing publishes or executes on its own — the follow-up draft still lands in this list for you to read.</p>
+      <label class="checkbox-row" id="task-idea-row">
+        <input type="checkbox" id="task-idea" />
+        Publish a structured idea (summary + qualitative confidence + risks)
+      </label>
+      <p class="hint">Nothing publishes, trades, or executes on its own — a published idea just gets an "Add to paper portfolio" button once the task completes. Confidence is the model's own gut-check, not a calculated probability, and no real money or exchange is ever involved.</p>
       <div class="dialog-actions">
         <button type="button" data-close>Cancel</button>
         <button type="submit">Submit</button>
@@ -76,9 +90,52 @@
       <label>Every (minutes)
         <input type="number" id="schedule-interval" min="5" value="60" required />
       </label>
+      <label class="checkbox-row" id="schedule-idea-row">
+        <input type="checkbox" id="schedule-idea" />
+        Publish a structured idea each run
+      </label>
       <div class="dialog-actions">
         <button type="button" data-close>Cancel</button>
         <button type="submit">Create</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="open-position-dialog">
+    <form id="open-position-form" class="dialog-form">
+      <h3>Add to Paper Portfolio</h3>
+      <p class="hint">Simulated only — no real money, no exchange. You enter the prices yourself.</p>
+      <label>Label
+        <input type="text" id="position-label" required />
+      </label>
+      <label>Side
+        <select id="position-side">
+          <option value="long">Long</option>
+          <option value="short">Short</option>
+        </select>
+      </label>
+      <label>Entry price (fake $)
+        <input type="number" id="position-entry" min="0" step="any" required />
+      </label>
+      <label>Quantity
+        <input type="number" id="position-qty" min="0" step="any" required />
+      </label>
+      <div class="dialog-actions">
+        <button type="button" data-close>Cancel</button>
+        <button type="submit">Add position</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="close-position-dialog">
+    <form id="close-position-form" class="dialog-form">
+      <h3>Close Paper Position</h3>
+      <label>Exit price (fake $)
+        <input type="number" id="close-exit-price" min="0" step="any" required />
+      </label>
+      <div class="dialog-actions">
+        <button type="button" data-close>Cancel</button>
+        <button type="submit">Close</button>
       </div>
     </form>
   </dialog>

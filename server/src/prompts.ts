@@ -20,6 +20,23 @@ export const SYSTEM_PROMPTS: Record<TaskType, string> = {
   "digital-product": `You are a drafting assistant for creating and selling digital products and services (ebooks, templates, courses, freelance service listings, etc). Produce clear, original, non-deceptive marketing copy, outlines, or listing drafts based on the user's request. Never write false claims, fake testimonials/reviews, or guarantees of income.`,
 };
 
+export const RESEARCH_TASK_TYPES: TaskType[] = [
+  "crypto-research",
+  "polymarket-research",
+  "stock-research",
+  "commodity-research",
+];
+
+export const IDEA_INSTRUCTIONS =
+  `\n\nThe user has asked you to publish a structured idea from this research. After your normal ` +
+  `analysis, end your response with exactly this block, filled in:\n` +
+  `IDEA_SUMMARY: <one-sentence idea or thing to watch>\n` +
+  `CONFIDENCE: <Low, Medium, or High — your own qualitative gut-check, explicitly NOT a calculated ` +
+  `probability or backtested statistic, and say so if asked>\n` +
+  `KEY_RISKS: <one or two sentences on what could make this wrong>\n` +
+  `This idea is for the user's own manual paper-trading tracking only. You are not placing any trade, ` +
+  `real or simulated, and have no connection to any exchange, broker, or account.`;
+
 export const CHAT_SYSTEM_PROMPT =
   `You are Hermes, a general-purpose assistant agent inside an agent-pool app. ` +
   `You can converse directly, or point the user to submit a longer job to the task dashboard ` +

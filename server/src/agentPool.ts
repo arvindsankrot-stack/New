@@ -1,12 +1,20 @@
 import { v4 as uuid } from "uuid";
 import { runCompletion } from "./llm";
-import { SYSTEM_PROMPTS, TaskType } from "./prompts";
+import { SYSTEM_PROMPTS, TaskType, IDEA_INSTRUCTIONS, RESEARCH_TASK_TYPES } from "./prompts";
 
 export type TaskStatus = "queued" | "in_progress" | "completed" | "failed";
 
 export interface ChainSpec {
   type: TaskType;
   promptPrefix?: string;
+}
+
+export type IdeaConfidence = "Low" | "Medium" | "High";
+
+export interface PublishedIdea {
+  summary: string;
+  confidence: IdeaConfidence;
+  risks: string;
 }
 
 export interface AgentTask {
@@ -19,8 +27,24 @@ export interface AgentTask {
   workerId?: number;
   chainTo?: ChainSpec;
   spawnedFrom?: string;
+  publishIdea?: boolean;
+  idea?: PublishedIdea;
   createdAt: string;
   updatedAt: string;
+}
+
+function parseIdea(text: string): PublishedIdea | undefined {
+  const summaryMatch = text.match(/IDEA_SUMMARY:\s*(.+)/i);
+  const confidenceMatch = text.match(/CONFIDENCE:\s*(Low|Medium|High)/i);
+  const risksMatch = text.match(/KEY_RISKS:\s*(.+)/i);
+  if (!summaryMatch || !confidenceMatch || !risksMatch) return undefined;
+
+  const confidence = confidenceMatch[1][0].toUpperCase() + confidenceMatch[1].slice(1).toLowerCase();
+  return {
+    summary: summaryMatch[1].trim(),
+    confidence: confidence as IdeaConfidence,
+    risks: risksMatch[1].trim(),
+  };
 }
 
 class AgentPool {
@@ -34,7 +58,13 @@ class AgentPool {
     this.idleWorkers = Array.from({ length: workerCount }, (_, i) => i);
   }
 
-  submit(type: TaskType, prompt: string, chainTo?: ChainSpec, spawnedFrom?: string): AgentTask {
+  submit(
+    type: TaskType,
+    prompt: string,
+    chainTo?: ChainSpec,
+    spawnedFrom?: string,
+    publishIdea?: boolean,
+  ): AgentTask {
     const now = new Date().toISOString();
     const task: AgentTask = {
       id: uuid(),
@@ -43,6 +73,7 @@ class AgentPool {
       status: "queued",
       chainTo,
       spawnedFrom,
+      publishIdea: publishIdea && RESEARCH_TASK_TYPES.includes(type) ? true : undefined,
       createdAt: now,
       updatedAt: now,
     };
@@ -84,11 +115,13 @@ class AgentPool {
     task.updatedAt = new Date().toISOString();
 
     try {
-      const result = await runCompletion(SYSTEM_PROMPTS[task.type], [
-        { role: "user", content: task.prompt },
-      ]);
+      const systemPrompt = SYSTEM_PROMPTS[task.type] + (task.publishIdea ? IDEA_INSTRUCTIONS : "");
+      const result = await runCompletion(systemPrompt, [{ role: "user", content: task.prompt }]);
       task.status = "completed";
       task.result = result;
+      if (task.publishIdea) {
+        task.idea = parseIdea(result);
+      }
 
       // Task chaining: auto-queue a follow-up drafting task from this result.
       // This only ever produces another draft for a human to read — it never

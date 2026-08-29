@@ -8,6 +8,7 @@ export interface Schedule {
   prompt: string;
   intervalMinutes: number;
   chainTo?: ChainSpec;
+  publishIdea?: boolean;
   createdAt: string;
   lastRunAt?: string;
   nextRunAt: string;
@@ -19,7 +20,13 @@ class Scheduler {
   private schedules = new Map<string, Schedule>();
   private timers = new Map<string, ReturnType<typeof setInterval>>();
 
-  create(type: TaskType, prompt: string, intervalMinutes: number, chainTo?: ChainSpec): Schedule {
+  create(
+    type: TaskType,
+    prompt: string,
+    intervalMinutes: number,
+    chainTo?: ChainSpec,
+    publishIdea?: boolean,
+  ): Schedule {
     const interval = Math.max(intervalMinutes, MIN_INTERVAL_MINUTES);
     const now = new Date();
     const schedule: Schedule = {
@@ -28,6 +35,7 @@ class Scheduler {
       prompt,
       intervalMinutes: interval,
       chainTo,
+      publishIdea,
       createdAt: now.toISOString(),
       nextRunAt: new Date(now.getTime() + interval * 60_000).toISOString(),
     };
@@ -54,7 +62,7 @@ class Scheduler {
   private fire(id: string): void {
     const schedule = this.schedules.get(id);
     if (!schedule) return;
-    agentPool.submit(schedule.type, schedule.prompt, schedule.chainTo);
+    agentPool.submit(schedule.type, schedule.prompt, schedule.chainTo, undefined, schedule.publishIdea);
     schedule.lastRunAt = new Date().toISOString();
     schedule.nextRunAt = new Date(Date.now() + schedule.intervalMinutes * 60_000).toISOString();
   }

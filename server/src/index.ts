@@ -3,6 +3,7 @@ import cors from "cors";
 import path from "path";
 import { agentPool, ChainSpec } from "./agentPool";
 import { scheduler } from "./scheduler";
+import { paperPortfolio, PositionSide } from "./paperTrading";
 import { TaskType, SYSTEM_PROMPTS, CHAT_SYSTEM_PROMPT } from "./prompts";
 import { runCompletion, ChatMessage } from "./llm";
 
@@ -56,7 +57,7 @@ app.post("/chat", async (req, res) => {
 });
 
 app.post("/tasks", (req, res) => {
-  const { type, prompt } = req.body ?? {};
+  const { type, prompt, publishIdea } = req.body ?? {};
   if (!TASK_TYPES.includes(type)) {
     res.status(400).json({ error: `type must be one of ${TASK_TYPES.join(", ")}` });
     return;
@@ -72,7 +73,7 @@ app.post("/tasks", (req, res) => {
     return;
   }
 
-  const task = agentPool.submit(type, prompt.trim(), chainTo);
+  const task = agentPool.submit(type, prompt.trim(), chainTo, undefined, Boolean(publishIdea));
   res.status(201).json(task);
 });
 
@@ -92,7 +93,7 @@ app.get("/tasks/:id", (req, res) => {
 // Schedules: recurring research that auto-queues a task on an interval, optionally
 // chaining into a follow-up draft. Never triggers anything outside the task pool.
 app.post("/schedules", (req, res) => {
-  const { type, prompt, intervalMinutes } = req.body ?? {};
+  const { type, prompt, intervalMinutes, publishIdea } = req.body ?? {};
   if (!TASK_TYPES.includes(type)) {
     res.status(400).json({ error: `type must be one of ${TASK_TYPES.join(", ")}` });
     return;
@@ -112,7 +113,7 @@ app.post("/schedules", (req, res) => {
     return;
   }
 
-  const schedule = scheduler.create(type, prompt.trim(), intervalMinutes, chainTo);
+  const schedule = scheduler.create(type, prompt.trim(), intervalMinutes, chainTo, Boolean(publishIdea));
   res.status(201).json(schedule);
 });
 
@@ -127,6 +128,57 @@ app.delete("/schedules/:id", (req, res) => {
     return;
   }
   res.status(204).send();
+});
+
+// Paper trading: simulated positions only. Fake money, manually-entered prices,
+// no market data feed and no connection to any real exchange or brokerage —
+// this can never place a real trade, by construction.
+app.post("/paper-positions", (req, res) => {
+  const { taskId, label, side, entryPrice, quantity } = req.body ?? {};
+  if (typeof label !== "string" || label.trim().length === 0) {
+    res.status(400).json({ error: "label is required" });
+    return;
+  }
+  if (side !== "long" && side !== "short") {
+    res.status(400).json({ error: "side must be 'long' or 'short'" });
+    return;
+  }
+  if (typeof entryPrice !== "number" || entryPrice <= 0) {
+    res.status(400).json({ error: "entryPrice must be a positive number" });
+    return;
+  }
+  if (typeof quantity !== "number" || quantity <= 0) {
+    res.status(400).json({ error: "quantity must be a positive number" });
+    return;
+  }
+
+  const position = paperPortfolio.open(
+    label.trim(),
+    side as PositionSide,
+    entryPrice,
+    quantity,
+    typeof taskId === "string" ? taskId : undefined,
+  );
+  res.status(201).json(position);
+});
+
+app.get("/paper-positions", (_req, res) => {
+  res.json(paperPortfolio.list());
+});
+
+app.post("/paper-positions/:id/close", (req, res) => {
+  const { exitPrice } = req.body ?? {};
+  if (typeof exitPrice !== "number" || exitPrice <= 0) {
+    res.status(400).json({ error: "exitPrice must be a positive number" });
+    return;
+  }
+
+  const position = paperPortfolio.close(req.params.id, exitPrice);
+  if (!position) {
+    res.status(404).json({ error: "not found or already closed" });
+    return;
+  }
+  res.json(position);
 });
 
 const port = Number(process.env.PORT ?? 3000);
