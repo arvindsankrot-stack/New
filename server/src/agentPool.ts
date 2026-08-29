@@ -103,12 +103,24 @@ class AgentPool {
 
   statusByType(): Record<
     TaskType,
-    { queued: number; inProgress: number; completed: number; failed: number; lastActivityAt?: string }
+    {
+      queued: number;
+      inProgress: number;
+      completed: number;
+      failed: number;
+      lastActivityAt?: string;
+      currentTask?: string;
+    }
   > {
-    const byType = {} as Record<
-      TaskType,
-      { queued: number; inProgress: number; completed: number; failed: number; lastActivityAt?: string }
-    >;
+    type Bucket = {
+      queued: number;
+      inProgress: number;
+      completed: number;
+      failed: number;
+      lastActivityAt?: string;
+      currentTask?: string;
+    };
+    const byType = {} as Record<TaskType, Bucket>;
     for (const type of ALL_TASK_TYPES) {
       byType[type] = { queued: 0, inProgress: 0, completed: 0, failed: 0 };
     }
@@ -118,6 +130,9 @@ class AgentPool {
       bucket[key]++;
       if (!bucket.lastActivityAt || task.updatedAt > bucket.lastActivityAt) {
         bucket.lastActivityAt = task.updatedAt;
+      }
+      if (task.status === "in_progress") {
+        bucket.currentTask = task.prompt.length > 70 ? `${task.prompt.slice(0, 70)}…` : task.prompt;
       }
     }
     return byType;

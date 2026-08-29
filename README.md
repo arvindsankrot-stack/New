@@ -54,12 +54,13 @@ Each research/drafting task type has a presentational identity — Plutus
 Hephaestus (digital products) — with a **Zeus** supervisor overseeing them.
 This is purely a naming/UI layer: every task is still picked up by whichever
 pooled worker is free (buffet-style dispatch), not a dedicated process per
-name. The web app's **Dashboard** tab shows a live status card per agent
-(queued/active/done/failed counts, last-activity time, a pulsing dot while
-working) plus a supervisor card that can generate an on-demand status report
-from the live snapshot. It only ever reports on task-pool activity — never
-market predictions or trade suggestions, even though the underlying agents
-research markets.
+name. The web app's **Dashboard** tab renders this as an animated office
+floor: each agent sits at a desk with an idle "breathing" bob, and while a
+task is running their monitor glows and a speech bubble shows the actual
+task text (truncated), not just a count. A supervisor card up top can
+generate an on-demand status report from the live snapshot. It only ever
+reports on task-pool activity — never market predictions or trade
+suggestions, even though the underlying agents research markets.
 
 ### Automation model
 

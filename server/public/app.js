@@ -186,30 +186,43 @@ function renderSupervisorCard(status) {
   });
 }
 
+function deskStatusLine(s) {
+  if (s.inProgress > 0) return s.currentTask ? `Working: ${s.currentTask}` : "Working…";
+  if (s.queued > 0) return `${s.queued} task${s.queued > 1 ? "s" : ""} waiting in queue`;
+  if (s.failed > 0 && s.completed === 0) return "Last task failed";
+  if (s.completed > 0) return "At rest, nothing queued";
+  return "Idle, no tasks yet";
+}
+
 function renderAgentGrid(status) {
   agentGridEl.innerHTML = "";
   for (const [type, profile] of Object.entries(AGENT_PROFILES)) {
     const s = status.byType[type] ?? { queued: 0, inProgress: 0, completed: 0, failed: 0 };
-    const card = document.createElement("div");
-    card.className = "agent-card";
-    card.innerHTML = `
-      ${avatarHtml(profile)}
-      <div class="agent-card-body">
-        <div class="agent-card-title-row">
-          <strong>${profile.name}</strong>
-          ${s.inProgress > 0 ? '<span class="working-dot" title="Working"></span>' : ""}
-        </div>
-        <span class="agent-role">${profile.role}</span>
-        <div class="agent-stat-row">
-          <span class="mini-stat">${s.queued} queued</span>
-          <span class="mini-stat">${s.inProgress} active</span>
-          <span class="mini-stat">${s.completed} done</span>
-          ${s.failed > 0 ? `<span class="mini-stat mini-stat-failed">${s.failed} failed</span>` : ""}
-        </div>
-        <div class="card-meta">Last activity: ${timeAgo(s.lastActivityAt)}</div>
+    const working = s.inProgress > 0;
+    const desk = document.createElement("div");
+    desk.className = `desk ${working ? "is-working" : "is-idle"}`;
+    desk.innerHTML = `
+      <div class="desk-bubble">${escapeHtml(deskStatusLine(s))}</div>
+      <div class="desk-character">
+        ${avatarHtml(profile)}
+        ${working ? '<span class="working-dot" title="Working"></span>' : ""}
       </div>
+      <div class="desk-surface">
+        <span class="desk-monitor"></span>
+        <span class="desk-monitor"></span>
+      </div>
+      <div class="desk-nameplate">
+        <strong>${profile.name}</strong>
+        <span class="agent-role">${profile.role}</span>
+      </div>
+      <div class="agent-stat-row">
+        <span class="mini-stat">${s.queued} queued</span>
+        <span class="mini-stat">${s.completed} done</span>
+        ${s.failed > 0 ? `<span class="mini-stat mini-stat-failed">${s.failed} failed</span>` : ""}
+      </div>
+      <div class="card-meta">Last activity: ${timeAgo(s.lastActivityAt)}</div>
     `;
-    agentGridEl.appendChild(card);
+    agentGridEl.appendChild(desk);
   }
 }
 
