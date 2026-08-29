@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: hermes-agent
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: WORKER_COUNT
+        value: "3"
