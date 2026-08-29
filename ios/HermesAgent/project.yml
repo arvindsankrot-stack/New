@@ -1,0 +1,23 @@
+name: HermesAgent
+options:
+  bundleIdPrefix: com.hermesagent
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  HermesAgent:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    info:
+      path: Info.plist
+      properties:
+        UILaunchScreen: {}
+        CFBundleDisplayName: Hermes Agent
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.hermesagent.app
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
