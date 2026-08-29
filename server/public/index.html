@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#4f46e5" />
+  <title>Hermes</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <main id="chat" class="page active">
+      <header class="page-header">
+        <h1>Chat</h1>
+        <button id="chat-clear" class="icon-btn" type="button" aria-label="Clear conversation" data-icon="trash"></button>
+      </header>
+      <div id="chat-log" class="chat-log">
+        <div id="chat-empty" class="empty-state">
+          <div class="empty-icon" data-icon="chat"></div>
+          <p>Ask Hermes anything — market research, drafting help, or general questions.</p>
+        </div>
+      </div>
+      <div id="chat-error" class="error"></div>
+      <form id="chat-form" class="chat-form">
+        <textarea id="chat-input" placeholder="Message Hermes..." rows="1"></textarea>
+        <button type="submit" id="chat-send" class="send-btn" aria-label="Send" data-icon="send"></button>
+      </form>
+    </main>
+
+    <main id="dashboard" class="page">
+      <header class="page-header">
+        <h1>Dashboard</h1>
+      </header>
+      <div id="dashboard-error" class="error"></div>
+      <div id="dashboard-loading" class="loading-state"><span class="spinner"></span></div>
+      <div id="dashboard-content" class="dashboard-content" hidden>
+        <div id="supervisor-card" class="agent-card supervisor-card"></div>
+        <div class="panel-block">
+          <div class="office-room-label">Activity — most recent first</div>
+          <ul id="activity-feed" class="activity-feed"></ul>
+        </div>
+        <div class="office-room">
+          <div class="office-room-label">The Office — live view</div>
+          <div id="agent-grid" class="office-desks"></div>
+        </div>
+      </div>
+    </main>
+
+    <main id="tasks" class="page">
+      <header class="page-header">
+        <h1>Agent Pool</h1>
+        <button id="new-task-btn" class="fab-btn" type="button"><span data-icon="plus"></span>New task</button>
+      </header>
+      <div id="tasks-error" class="error"></div>
+      <div id="tasks-loading" class="loading-state"><span class="spinner"></span></div>
+      <div id="tasks-empty" class="empty-state" hidden>
+        <div class="empty-icon" data-icon="pool"></div>
+        <p>No tasks yet. Submit research and watch agents work it buffet-style.</p>
+      </div>
+      <ul id="task-list" class="card-list"></ul>
+    </main>
+
+    <main id="schedules" class="page">
+      <header class="page-header">
+        <h1>Schedules</h1>
+        <button id="new-schedule-btn" class="fab-btn" type="button"><span data-icon="plus"></span>New schedule</button>
+      </header>
+      <div id="schedules-error" class="error"></div>
+      <div id="schedules-loading" class="loading-state"><span class="spinner"></span></div>
+      <div id="schedules-empty" class="empty-state" hidden>
+        <div class="empty-icon" data-icon="clock"></div>
+        <p>No recurring research set up. Schedules re-run automatically on a timer.</p>
+      </div>
+      <ul id="schedule-list" class="card-list"></ul>
+    </main>
+
+    <main id="portfolio" class="page">
+      <header class="page-header">
+        <h1>Paper Portfolio</h1>
+      </header>
+      <p class="hint">Simulated positions only — fake money, prices you enter by hand, no market data feed, no exchange or brokerage connection. This can never place a real trade.</p>
+      <div id="portfolio-error" class="error"></div>
+      <div id="portfolio-loading" class="loading-state"><span class="spinner"></span></div>
+      <div id="portfolio-empty" class="empty-state" hidden>
+        <div class="empty-icon" data-icon="chart"></div>
+        <p>No paper positions yet. Publish an idea from a research task to track one here.</p>
+      </div>
+      <ul id="portfolio-list" class="card-list"></ul>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="tab-btn active" data-tab="chat"><span data-icon="chat"></span><span class="tab-label">Chat</span></button>
+      <button class="tab-btn" data-tab="dashboard"><span data-icon="bolt"></span><span class="tab-label">Dashboard</span></button>
+      <button class="tab-btn" data-tab="tasks"><span data-icon="pool"></span><span class="tab-label">Agent Pool</span></button>
+      <button class="tab-btn" data-tab="schedules"><span data-icon="clock"></span><span class="tab-label">Schedules</span></button>
+      <button class="tab-btn" data-tab="portfolio"><span data-icon="chart"></span><span class="tab-label">Portfolio</span></button>
+    </nav>
+  </div>
+
+  <dialog id="new-task-dialog">
+    <form id="new-task-form" class="dialog-form">
+      <div class="dialog-handle"></div>
+      <h3>New Task</h3>
+      <label>Type
+        <select id="task-type"></select>
+      </label>
+      <label>Prompt
+        <textarea id="task-prompt" rows="4" required placeholder="What should the agent research or draft?"></textarea>
+      </label>
+      <label class="checkbox-row" id="task-chain-row">
+        <input type="checkbox" id="task-chain" />
+        <span>Auto-draft a write-up from the result</span>
+      </label>
+      <label class="checkbox-row" id="task-idea-row">
+        <input type="checkbox" id="task-idea" />
+        <span>Publish a structured idea (summary + qualitative confidence + risks)</span>
+      </label>
+      <p class="hint">Nothing publishes, trades, or executes on its own — a published idea just gets an "Add to paper portfolio" button once the task completes. Confidence is the model's own gut-check, not a calculated probability, and no real money or exchange is ever involved.</p>
+      <div class="dialog-actions">
+        <button type="button" class="btn-secondary" data-close>Cancel</button>
+        <button type="submit" class="btn-primary">Submit</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="new-schedule-dialog">
+    <form id="new-schedule-form" class="dialog-form">
+      <div class="dialog-handle"></div>
+      <h3>New Schedule</h3>
+      <label>Type
+        <select id="schedule-type"></select>
+      </label>
+      <label>Prompt
+        <textarea id="schedule-prompt" rows="3" required placeholder="What should it research, every time?"></textarea>
+      </label>
+      <label>Every (minutes)
+        <input type="number" id="schedule-interval" min="5" value="60" required />
+      </label>
+      <label class="checkbox-row" id="schedule-idea-row">
+        <input type="checkbox" id="schedule-idea" />
+        <span>Publish a structured idea each run</span>
+      </label>
+      <div class="dialog-actions">
+        <button type="button" class="btn-secondary" data-close>Cancel</button>
+        <button type="submit" class="btn-primary">Create</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="open-position-dialog">
+    <form id="open-position-form" class="dialog-form">
+      <div class="dialog-handle"></div>
+      <h3>Add to Paper Portfolio</h3>
+      <p class="hint">Simulated only — no real money, no exchange. You enter the prices yourself.</p>
+      <label>Label
+        <input type="text" id="position-label" required />
+      </label>
+      <label>Side
+        <select id="position-side">
+          <option value="long">Long</option>
+          <option value="short">Short</option>
+        </select>
+      </label>
+      <label>Entry price (fake $)
+        <input type="number" id="position-entry" min="0" step="any" required />
+      </label>
+      <label>Quantity
+        <input type="number" id="position-qty" min="0" step="any" required />
+      </label>
+      <div class="dialog-actions">
+        <button type="button" class="btn-secondary" data-close>Cancel</button>
+        <button type="submit" class="btn-primary">Add position</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="close-position-dialog">
+    <form id="close-position-form" class="dialog-form">
+      <div class="dialog-handle"></div>
+      <h3>Close Paper Position</h3>
+      <label>Exit price (fake $)
+        <input type="number" id="close-exit-price" min="0" step="any" required />
+      </label>
+      <div class="dialog-actions">
+        <button type="button" class="btn-secondary" data-close>Cancel</button>
+        <button type="submit" class="btn-primary">Close</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
