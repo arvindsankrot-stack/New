@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Hermes</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Hermes</h1>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="chat">Chat</button>
+      <button class="tab-btn" data-tab="tasks">Agent Pool</button>
+      <button class="tab-btn" data-tab="schedules">Schedules</button>
+    </nav>
+  </header>
+
+  <main id="chat" class="tab-panel active">
+    <div id="chat-log" class="chat-log"></div>
+    <div id="chat-error" class="error"></div>
+    <form id="chat-form" class="chat-form">
+      <textarea id="chat-input" placeholder="Ask Hermes..." rows="1"></textarea>
+      <button type="submit" id="chat-send">Send</button>
+    </form>
+  </main>
+
+  <main id="tasks" class="tab-panel">
+    <div class="panel-header">
+      <h2>Agent Pool</h2>
+      <button id="new-task-btn">+ New task</button>
+    </div>
+    <div id="tasks-error" class="error"></div>
+    <ul id="task-list" class="card-list"></ul>
+  </main>
+
+  <main id="schedules" class="tab-panel">
+    <div class="panel-header">
+      <h2>Schedules</h2>
+      <button id="new-schedule-btn">+ New schedule</button>
+    </div>
+    <div id="schedules-error" class="error"></div>
+    <ul id="schedule-list" class="card-list"></ul>
+  </main>
+
+  <dialog id="new-task-dialog">
+    <form id="new-task-form" class="dialog-form">
+      <h3>New Task</h3>
+      <label>Type
+        <select id="task-type"></select>
+      </label>
+      <label>Prompt
+        <textarea id="task-prompt" rows="4" required></textarea>
+      </label>
+      <label class="checkbox-row" id="task-chain-row">
+        <input type="checkbox" id="task-chain" />
+        Auto-draft a write-up from the result
+      </label>
+      <p class="hint">Nothing publishes or executes on its own — the follow-up draft still lands in this list for you to read.</p>
+      <div class="dialog-actions">
+        <button type="button" data-close>Cancel</button>
+        <button type="submit">Submit</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="new-schedule-dialog">
+    <form id="new-schedule-form" class="dialog-form">
+      <h3>New Schedule</h3>
+      <label>Type
+        <select id="schedule-type"></select>
+      </label>
+      <label>Prompt
+        <textarea id="schedule-prompt" rows="3" required></textarea>
+      </label>
+      <label>Every (minutes)
+        <input type="number" id="schedule-interval" min="5" value="60" required />
+      </label>
+      <div class="dialog-actions">
+        <button type="button" data-close>Cancel</button>
+        <button type="submit">Create</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

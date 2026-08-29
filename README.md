@@ -1,8 +1,8 @@
 # Hermes Agent Pool
 
 A small agent-pool system: a backend where worker agents pull tasks "buffet style"
-from a shared queue, plus a chat endpoint, fronted by an iOS app with a Chat tab
-and an Agent Pool task dashboard.
+from a shared queue, plus a chat endpoint. Two frontends talk to it: a web app
+(open it from any phone browser, no install) and a SwiftUI iOS app.
 
 ## Scope and limits (read this first)
 
@@ -53,6 +53,31 @@ Two automations are supported, both bounded to the task pool itself:
 Neither automation ever leaves the task pool: nothing is published,
 posted, traded, or paid for automatically. Every output lands as a task
 result for a human to read and act on.
+
+## Web app (`server/public/`)
+
+A plain HTML/CSS/JS frontend (no build step) served directly by the Express
+server at `/` — same Chat / Agent Pool / Schedules tabs as the iOS app.
+Running `npm run dev` (or `npm start`) already serves it, so
+`http://localhost:3000` shows the app.
+
+### Getting a URL you can open from your phone
+
+To reach it from your phone (not just your dev machine), deploy the
+`server/` folder somewhere with a public HTTPS URL. Any Node host works;
+[Render](https://render.com) has a straightforward free-tier path:
+
+1. Push this repo to GitHub (already done if you're reading this on a PR).
+2. On Render: **New → Web Service**, connect the repo, set:
+   - Root directory: `server`
+   - Build command: `npm install && npm run build`
+   - Start command: `npm start`
+3. Add an environment variable `ANTHROPIC_API_KEY` with your key.
+4. Deploy. Render gives you a URL like `https://hermes-agent.onrender.com`
+   — open that on your phone whenever you want, bookmark it or add it to
+   your home screen (Safari → Share → Add to Home Screen) for an app-like icon.
+
+No App Store, no Xcode, no re-signing every 7 days — it's just a website.
 
 ## iOS app (`ios/HermesAgent/`)
 

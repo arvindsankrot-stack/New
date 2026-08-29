@@ -1,0 +1,116 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f7f7f8;
+  --panel: #ffffff;
+  --border: #e2e2e6;
+  --text: #1a1a1e;
+  --muted: #6b6b73;
+  --accent: #4f46e5;
+  --danger: #d33;
+  --queued: #8a8a8a;
+  --in_progress: #b8860b;
+  --completed: #1a8a4a;
+  --failed: #c0392b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121214;
+    --panel: #1c1c1f;
+    --border: #2c2c30;
+    --text: #f0f0f2;
+    --muted: #9a9aa2;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  padding: env(safe-area-inset-top, 12px) 16px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.topbar h1 { margin: 0 0 8px; font-size: 1.3rem; }
+
+.tabs { display: flex; gap: 6px; }
+
+.tab-btn {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.tab-btn.active { background: var(--accent); color: #fff; }
+
+.tab-panel { display: none; flex: 1; min-height: 0; flex-direction: column; padding: 12px 16px; overflow-y: auto; }
+.tab-panel.active { display: flex; }
+
+.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.panel-header h2 { margin: 0; font-size: 1.05rem; }
+.panel-header button, #chat-send { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 12px; font-weight: 600; }
+
+.chat-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 8px; }
+
+.bubble { max-width: 80%; padding: 10px 12px; border-radius: 12px; white-space: pre-wrap; word-break: break-word; }
+.bubble.user { align-self: flex-end; background: var(--accent); color: #fff; }
+.bubble.assistant { align-self: flex-start; background: var(--panel); border: 1px solid var(--border); }
+
+.chat-form { display: flex; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.chat-form textarea { flex: 1; resize: none; border-radius: 8px; border: 1px solid var(--border); padding: 8px; background: var(--panel); color: var(--text); font: inherit; }
+
+.card-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.card-title-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+.card-title-row strong { font-size: 0.95rem; }
+
+.status-pill { font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; font-weight: 600; text-transform: capitalize; }
+.status-pill.queued { background: color-mix(in srgb, var(--queued) 20%, transparent); color: var(--queued); }
+.status-pill.in_progress { background: color-mix(in srgb, var(--in_progress) 20%, transparent); color: var(--in_progress); }
+.status-pill.completed { background: color-mix(in srgb, var(--completed) 20%, transparent); color: var(--completed); }
+.status-pill.failed { background: color-mix(in srgb, var(--failed) 20%, transparent); color: var(--failed); }
+
+.card-prompt { color: var(--muted); font-size: 0.85rem; margin: 4px 0; }
+.card-result { font-size: 0.88rem; white-space: pre-wrap; }
+.card-meta { font-size: 0.75rem; color: var(--muted); margin-top: 6px; }
+.card-cancel { background: none; border: 1px solid var(--danger); color: var(--danger); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; }
+
+.error { color: var(--danger); font-size: 0.85rem; min-height: 1em; }
+
+dialog { border: none; border-radius: 12px; padding: 0; max-width: 420px; width: 90vw; background: var(--panel); color: var(--text); }
+dialog::backdrop { background: rgba(0,0,0,0.4); }
+
+.dialog-form { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.dialog-form h3 { margin: 0; }
+.dialog-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--muted); }
+.dialog-form select, .dialog-form textarea, .dialog-form input {
+  font: inherit; padding: 8px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text);
+}
+.checkbox-row { flex-direction: row !important; align-items: center; gap: 8px !important; }
+.hint { font-size: 0.75rem; color: var(--muted); margin: 0; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.dialog-actions button { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+.dialog-actions button[type="submit"] { background: var(--accent); color: #fff; border: none; }

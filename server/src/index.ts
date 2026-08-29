@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
 import { agentPool, ChainSpec } from "./agentPool";
 import { scheduler } from "./scheduler";
 import { TaskType, SYSTEM_PROMPTS, CHAT_SYSTEM_PROMPT } from "./prompts";
@@ -8,6 +9,7 @@ import { runCompletion, ChatMessage } from "./claude";
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "..", "public")));
 
 const TASK_TYPES = Object.keys(SYSTEM_PROMPTS) as TaskType[];
 
