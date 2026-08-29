@@ -149,18 +149,20 @@ const dashboardContent = document.getElementById("dashboard-content");
 const supervisorCardEl = document.getElementById("supervisor-card");
 const agentGridEl = document.getElementById("agent-grid");
 
-function avatarHtml(profile) {
-  return `<div class="avatar-badge" style="background:${profile.color}"><span data-icon="${profile.icon}"></span></div>`;
+function cardBannerHtml(profile) {
+  return `
+    <div class="card-banner" style="background:linear-gradient(135deg, ${profile.color}, color-mix(in srgb, ${profile.color} 55%, black))">
+      <div class="avatar-badge banner-avatar" style="background:${profile.color}"><span data-icon="${profile.icon}"></span></div>
+    </div>
+  `;
 }
 
 function renderSupervisorCard(status) {
   supervisorCardEl.innerHTML = `
-    ${avatarHtml(SUPERVISOR_PROFILE)}
+    ${cardBannerHtml(SUPERVISOR_PROFILE)}
     <div class="agent-card-body">
-      <div class="agent-card-title-row">
-        <strong>${SUPERVISOR_PROFILE.name}</strong>
-        <span class="agent-role">${SUPERVISOR_PROFILE.role}</span>
-      </div>
+      <strong>${SUPERVISOR_PROFILE.name}</strong>
+      <span class="agent-role">${SUPERVISOR_PROFILE.role}</span>
       <div class="supervisor-stats">
         <div class="stat"><span class="stat-value">${status.busyWorkers}/${status.workerCount}</span><span class="stat-label">workers busy</span></div>
         <div class="stat"><span class="stat-value">${status.schedules}</span><span class="stat-label">schedules</span></div>
@@ -202,28 +204,57 @@ function renderAgentGrid(status) {
     const desk = document.createElement("div");
     desk.className = `desk ${working ? "is-working" : "is-idle"}`;
     desk.innerHTML = `
-      <div class="desk-bubble">${escapeHtml(deskStatusLine(s))}</div>
-      <div class="desk-character">
-        ${avatarHtml(profile)}
-        ${working ? '<span class="working-dot" title="Working"></span>' : ""}
-      </div>
-      <div class="desk-surface">
-        <span class="desk-monitor"></span>
-        <span class="desk-monitor"></span>
-      </div>
-      <div class="desk-nameplate">
-        <strong>${profile.name}</strong>
+      ${cardBannerHtml(profile)}
+      <div class="desk-body">
+        <div class="desk-name-row">
+          <strong>${profile.name}</strong>
+          ${working ? '<span class="working-dot" title="Working"></span>' : ""}
+        </div>
         <span class="agent-role">${profile.role}</span>
+        <div class="desk-bubble">${escapeHtml(deskStatusLine(s))}</div>
+        <div class="desk-surface">
+          <span class="desk-monitor"></span>
+          <span class="desk-monitor"></span>
+        </div>
+        <div class="agent-stat-row">
+          <span class="mini-stat">${s.queued} queued</span>
+          <span class="mini-stat">${s.completed} done</span>
+          ${s.failed > 0 ? `<span class="mini-stat mini-stat-failed">${s.failed} failed</span>` : ""}
+        </div>
+        <div class="card-meta">Last activity: ${timeAgo(s.lastActivityAt)}</div>
       </div>
-      <div class="agent-stat-row">
-        <span class="mini-stat">${s.queued} queued</span>
-        <span class="mini-stat">${s.completed} done</span>
-        ${s.failed > 0 ? `<span class="mini-stat mini-stat-failed">${s.failed} failed</span>` : ""}
-      </div>
-      <div class="card-meta">Last activity: ${timeAgo(s.lastActivityAt)}</div>
     `;
     agentGridEl.appendChild(desk);
   }
+}
+
+const activityFeedEl = document.getElementById("activity-feed");
+
+function renderActivityFeed(status) {
+  const rows = Object.entries(AGENT_PROFILES)
+    .map(([type, profile]) => ({ profile, s: status.byType[type] ?? {} }))
+    .filter((row) => row.s.lastActivityAt)
+    .sort((a, b) => b.s.lastActivityAt.localeCompare(a.s.lastActivityAt));
+
+  activityFeedEl.innerHTML = "";
+  if (rows.length === 0) {
+    activityFeedEl.innerHTML = '<li class="activity-row activity-empty">No activity yet — submit a task to see agents show up here.</li>';
+    return;
+  }
+  for (const { profile, s } of rows) {
+    const li = document.createElement("li");
+    li.className = "activity-row";
+    li.innerHTML = `
+      <span class="activity-dot" style="background:${profile.color}"><span data-icon="${profile.icon}"></span></span>
+      <div class="activity-main">
+        <strong>${profile.name}</strong>
+        <span class="activity-status">${escapeHtml(deskStatusLine(s))}</span>
+      </div>
+      <span class="activity-time">${timeAgo(s.lastActivityAt)}</span>
+    `;
+    activityFeedEl.appendChild(li);
+  }
+  injectIcons(activityFeedEl);
 }
 
 async function refreshDashboard() {
@@ -232,6 +263,7 @@ async function refreshDashboard() {
   try {
     const status = await api.fetchAgentStatus();
     renderSupervisorCard(status);
+    renderActivityFeed(status);
     renderAgentGrid(status);
     dashboardContent.hidden = false;
     setState("dashboard", { loading: false });
