@@ -1,6 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { runCompletion, cleanErrorMessage } from "./llm";
-import { SYSTEM_PROMPTS, TaskType, IDEA_INSTRUCTIONS, RESEARCH_TASK_TYPES } from "./prompts";
+import { SYSTEM_PROMPTS, TaskType, IDEA_INSTRUCTIONS, RESEARCH_TASK_TYPES, ALL_TASK_TYPES } from "./prompts";
 
 export type TaskStatus = "queued" | "in_progress" | "completed" | "failed";
 
@@ -91,6 +91,36 @@ class AgentPool {
 
   get(id: string): AgentTask | undefined {
     return this.tasks.get(id);
+  }
+
+  get totalWorkers(): number {
+    return this.workerCount;
+  }
+
+  busyWorkerCount(): number {
+    return Array.from(this.tasks.values()).filter((t) => t.status === "in_progress").length;
+  }
+
+  statusByType(): Record<
+    TaskType,
+    { queued: number; inProgress: number; completed: number; failed: number; lastActivityAt?: string }
+  > {
+    const byType = {} as Record<
+      TaskType,
+      { queued: number; inProgress: number; completed: number; failed: number; lastActivityAt?: string }
+    >;
+    for (const type of ALL_TASK_TYPES) {
+      byType[type] = { queued: 0, inProgress: 0, completed: 0, failed: 0 };
+    }
+    for (const task of this.tasks.values()) {
+      const bucket = byType[task.type];
+      const key = task.status === "in_progress" ? "inProgress" : task.status;
+      bucket[key]++;
+      if (!bucket.lastActivityAt || task.updatedAt > bucket.lastActivityAt) {
+        bucket.lastActivityAt = task.updatedAt;
+      }
+    }
+    return byType;
   }
 
   // Buffet-style dispatch: any idle worker grabs the next queued task, first-come first-served.

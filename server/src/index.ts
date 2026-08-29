@@ -4,7 +4,7 @@ import path from "path";
 import { agentPool, ChainSpec } from "./agentPool";
 import { scheduler } from "./scheduler";
 import { paperPortfolio, PositionSide } from "./paperTrading";
-import { TaskType, SYSTEM_PROMPTS, CHAT_SYSTEM_PROMPT } from "./prompts";
+import { TaskType, SYSTEM_PROMPTS, CHAT_SYSTEM_PROMPT, SUPERVISOR_SYSTEM_PROMPT } from "./prompts";
 import { runCompletion, ChatMessage, cleanErrorMessage } from "./llm";
 
 const app = express();
@@ -179,6 +179,38 @@ app.post("/paper-positions/:id/close", (req, res) => {
     return;
   }
   res.json(position);
+});
+
+// Agent dashboard: a status snapshot across the pool, plus an optional
+// LLM-written summary from "the supervisor." Purely observational — this
+// never triggers any action, it only reports on task-pool state.
+function buildStatusSnapshot() {
+  const positions = paperPortfolio.list();
+  return {
+    workerCount: agentPool.totalWorkers,
+    busyWorkers: agentPool.busyWorkerCount(),
+    byType: agentPool.statusByType(),
+    schedules: scheduler.list().length,
+    portfolio: {
+      open: positions.filter((p) => p.status === "open").length,
+      closed: positions.filter((p) => p.status === "closed").length,
+    },
+  };
+}
+
+app.get("/agents/status", (_req, res) => {
+  res.json(buildStatusSnapshot());
+});
+
+app.post("/agents/summary", async (_req, res) => {
+  const snapshot = buildStatusSnapshot();
+  const prompt = `Current status snapshot (JSON):\n${JSON.stringify(snapshot, null, 2)}\n\nWrite the status report.`;
+  try {
+    const summary = await runCompletion(SUPERVISOR_SYSTEM_PROMPT, [{ role: "user", content: prompt }]);
+    res.json({ summary });
+  } catch (err) {
+    res.status(502).json({ error: cleanErrorMessage(err) });
+  }
 });
 
 const port = Number(process.env.PORT ?? 3000);

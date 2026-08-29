@@ -28,6 +28,18 @@
       </form>
     </main>
 
+    <main id="dashboard" class="page">
+      <header class="page-header">
+        <h1>Dashboard</h1>
+      </header>
+      <div id="dashboard-error" class="error"></div>
+      <div id="dashboard-loading" class="loading-state"><span class="spinner"></span></div>
+      <div id="dashboard-content" class="dashboard-content" hidden>
+        <div id="supervisor-card" class="agent-card supervisor-card"></div>
+        <div id="agent-grid" class="agent-grid"></div>
+      </div>
+    </main>
+
     <main id="tasks" class="page">
       <header class="page-header">
         <h1>Agent Pool</h1>
@@ -72,6 +84,7 @@
 
     <nav class="bottom-nav">
       <button class="tab-btn active" data-tab="chat"><span data-icon="chat"></span><span class="tab-label">Chat</span></button>
+      <button class="tab-btn" data-tab="dashboard"><span data-icon="bolt"></span><span class="tab-label">Dashboard</span></button>
       <button class="tab-btn" data-tab="tasks"><span data-icon="pool"></span><span class="tab-label">Agent Pool</span></button>
       <button class="tab-btn" data-tab="schedules"><span data-icon="clock"></span><span class="tab-label">Schedules</span></button>
       <button class="tab-btn" data-tab="portfolio"><span data-icon="chart"></span><span class="tab-label">Portfolio</span></button>

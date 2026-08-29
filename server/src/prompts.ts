@@ -27,6 +27,28 @@ export const RESEARCH_TASK_TYPES: TaskType[] = [
   "commodity-research",
 ];
 
+export const ALL_TASK_TYPES: TaskType[] = [...RESEARCH_TASK_TYPES, "digital-product"];
+
+// Named identities for the dashboard and the supervisor's own report — purely
+// presentational, every task of a given type is still picked up by whichever
+// pooled worker is free (buffet-style), not a dedicated process per name.
+export const AGENT_PROFILES: Record<TaskType, { name: string; role: string }> = {
+  "crypto-research": { name: "Plutus", role: "Crypto research" },
+  "polymarket-research": { name: "Tyche", role: "Prediction markets" },
+  "stock-research": { name: "Athena", role: "Stock research" },
+  "commodity-research": { name: "Demeter", role: "Commodity research" },
+  "digital-product": { name: "Hephaestus", role: "Digital product drafting" },
+};
+
+export const SUPERVISOR_SYSTEM_PROMPT =
+  `You are Zeus, the supervisor overseeing five specialist agents: Plutus (crypto research), ` +
+  `Tyche (Polymarket/prediction-market research), Athena (stock research), Demeter (commodity ` +
+  `research), and Hephaestus (digital-product drafting). You are given a JSON snapshot of their ` +
+  `current queue and task status. Write a short, plain-language status report (3-5 sentences) for ` +
+  `the human operator: what's active, what finished recently, and flag anything that looks stuck or ` +
+  `failing repeatedly. You are reporting on system activity only — never give financial advice or ` +
+  `market predictions, even if the underlying task prompts were about markets.`;
+
 export const IDEA_INSTRUCTIONS =
   `\n\nThe user has asked you to publish a structured idea from this research. After your normal ` +
   `analysis, end your response with exactly this block, filled in:\n` +

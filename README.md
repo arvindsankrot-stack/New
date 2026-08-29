@@ -44,6 +44,22 @@ Endpoints:
 - `POST /paper-positions` — `{ taskId?, label, side: "long"|"short", entryPrice, quantity }` → open a simulated position
 - `GET /paper-positions` — list all simulated positions
 - `POST /paper-positions/:id/close` — `{ exitPrice }` → close a position and compute simulated P&L
+- `GET /agents/status` — a status snapshot: worker busy/idle count, per-agent-type queued/active/completed/failed counts and last activity, schedule count, portfolio open/closed count
+- `POST /agents/summary` — asks the model, acting as "the supervisor," to turn that snapshot into a short plain-language status report
+
+### Named agents + dashboard
+
+Each research/drafting task type has a presentational identity — Plutus
+(crypto), Tyche (Polymarket), Athena (stocks), Demeter (commodities), and
+Hephaestus (digital products) — with a **Zeus** supervisor overseeing them.
+This is purely a naming/UI layer: every task is still picked up by whichever
+pooled worker is free (buffet-style dispatch), not a dedicated process per
+name. The web app's **Dashboard** tab shows a live status card per agent
+(queued/active/done/failed counts, last-activity time, a pulsing dot while
+working) plus a supervisor card that can generate an on-demand status report
+from the live snapshot. It only ever reports on task-pool activity — never
+market predictions or trade suggestions, even though the underlying agents
+research markets.
 
 ### Automation model
 
