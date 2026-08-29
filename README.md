@@ -31,10 +31,28 @@ npm run dev             # http://localhost:3000
 
 Endpoints:
 - `POST /chat` — `{ messages: [{role, content}] }` → `{ reply }`
-- `POST /tasks` — `{ type, prompt }` → created task
+- `POST /tasks` — `{ type, prompt, chainTo?: { type, promptPrefix? } }` → created task
 - `GET /tasks` — list all tasks with status/result
 - `GET /tasks/:id` — one task
 - `GET /task-types` — valid `type` values
+- `POST /schedules` — `{ type, prompt, intervalMinutes, chainTo? }` → recurring research, auto-submits a task on that interval (min 5 minutes)
+- `GET /schedules` — list active schedules
+- `DELETE /schedules/:id` — cancel a schedule
+
+### Automation model
+
+Two automations are supported, both bounded to the task pool itself:
+
+1. **Chaining** — a task can carry `chainTo`. When it completes, the pool
+   automatically queues a follow-up task of that type, seeded with the
+   result (e.g. crypto research → auto-drafted write-up).
+2. **Scheduling** — a `(type, prompt, intervalMinutes)` triple that
+   re-submits itself on a timer, so research can run unattended on a
+   recurring basis.
+
+Neither automation ever leaves the task pool: nothing is published,
+posted, traded, or paid for automatically. Every output lands as a task
+result for a human to read and act on.
 
 ## iOS app (`ios/HermesAgent/`)
 

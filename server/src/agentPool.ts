@@ -4,6 +4,11 @@ import { SYSTEM_PROMPTS, TaskType } from "./prompts";
 
 export type TaskStatus = "queued" | "in_progress" | "completed" | "failed";
 
+export interface ChainSpec {
+  type: TaskType;
+  promptPrefix?: string;
+}
+
 export interface AgentTask {
   id: string;
   type: TaskType;
@@ -12,6 +17,8 @@ export interface AgentTask {
   result?: string;
   error?: string;
   workerId?: number;
+  chainTo?: ChainSpec;
+  spawnedFrom?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,13 +34,15 @@ class AgentPool {
     this.idleWorkers = Array.from({ length: workerCount }, (_, i) => i);
   }
 
-  submit(type: TaskType, prompt: string): AgentTask {
+  submit(type: TaskType, prompt: string, chainTo?: ChainSpec, spawnedFrom?: string): AgentTask {
     const now = new Date().toISOString();
     const task: AgentTask = {
       id: uuid(),
       type,
       prompt,
       status: "queued",
+      chainTo,
+      spawnedFrom,
       createdAt: now,
       updatedAt: now,
     };
@@ -80,6 +89,14 @@ class AgentPool {
       ]);
       task.status = "completed";
       task.result = result;
+
+      // Task chaining: auto-queue a follow-up drafting task from this result.
+      // This only ever produces another draft for a human to read — it never
+      // executes a trade, order, or any external action on its own.
+      if (task.chainTo) {
+        const prefix = task.chainTo.promptPrefix ?? "Based on the following research, draft:";
+        this.submit(task.chainTo.type, `${prefix}\n\n${result}`, undefined, task.id);
+      }
     } catch (err) {
       task.status = "failed";
       task.error = err instanceof Error ? err.message : "Unknown error";

@@ -8,6 +8,9 @@ struct RootView: View {
 
             TaskDashboardView()
                 .tabItem { Label("Agent Pool", systemImage: "square.stack.3d.up") }
+
+            SchedulesView()
+                .tabItem { Label("Schedules", systemImage: "clock.arrow.circlepath") }
         }
     }
 }

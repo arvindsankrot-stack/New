@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
-import { agentPool } from "./agentPool";
+import { agentPool, ChainSpec } from "./agentPool";
+import { scheduler } from "./scheduler";
 import { TaskType, SYSTEM_PROMPTS, CHAT_SYSTEM_PROMPT } from "./prompts";
 import { runCompletion, ChatMessage } from "./claude";
 
@@ -9,6 +10,25 @@ app.use(cors());
 app.use(express.json());
 
 const TASK_TYPES = Object.keys(SYSTEM_PROMPTS) as TaskType[];
+
+function parseChainTo(body: unknown): { chainTo?: ChainSpec; error?: string } {
+  const chainTo = (body as { chainTo?: unknown } | undefined)?.chainTo;
+  if (chainTo === undefined) return {};
+  if (
+    typeof chainTo !== "object" ||
+    chainTo === null ||
+    !TASK_TYPES.includes((chainTo as { type?: unknown }).type as TaskType)
+  ) {
+    return { error: `chainTo.type must be one of ${TASK_TYPES.join(", ")}` };
+  }
+  const spec = chainTo as { type: TaskType; promptPrefix?: unknown };
+  return {
+    chainTo: {
+      type: spec.type,
+      promptPrefix: typeof spec.promptPrefix === "string" ? spec.promptPrefix : undefined,
+    },
+  };
+}
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true });
@@ -44,7 +64,13 @@ app.post("/tasks", (req, res) => {
     return;
   }
 
-  const task = agentPool.submit(type, prompt.trim());
+  const { chainTo, error } = parseChainTo(req.body);
+  if (error) {
+    res.status(400).json({ error });
+    return;
+  }
+
+  const task = agentPool.submit(type, prompt.trim(), chainTo);
   res.status(201).json(task);
 });
 
@@ -59,6 +85,46 @@ app.get("/tasks/:id", (req, res) => {
     return;
   }
   res.json(task);
+});
+
+// Schedules: recurring research that auto-queues a task on an interval, optionally
+// chaining into a follow-up draft. Never triggers anything outside the task pool.
+app.post("/schedules", (req, res) => {
+  const { type, prompt, intervalMinutes } = req.body ?? {};
+  if (!TASK_TYPES.includes(type)) {
+    res.status(400).json({ error: `type must be one of ${TASK_TYPES.join(", ")}` });
+    return;
+  }
+  if (typeof prompt !== "string" || prompt.trim().length === 0) {
+    res.status(400).json({ error: "prompt is required" });
+    return;
+  }
+  if (typeof intervalMinutes !== "number" || !Number.isFinite(intervalMinutes)) {
+    res.status(400).json({ error: "intervalMinutes must be a number" });
+    return;
+  }
+
+  const { chainTo, error } = parseChainTo(req.body);
+  if (error) {
+    res.status(400).json({ error });
+    return;
+  }
+
+  const schedule = scheduler.create(type, prompt.trim(), intervalMinutes, chainTo);
+  res.status(201).json(schedule);
+});
+
+app.get("/schedules", (_req, res) => {
+  res.json(scheduler.list());
+});
+
+app.delete("/schedules/:id", (req, res) => {
+  const removed = scheduler.cancel(req.params.id);
+  if (!removed) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  res.status(204).send();
 });
 
 const port = Number(process.env.PORT ?? 3000);

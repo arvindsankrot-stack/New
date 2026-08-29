@@ -15,11 +15,11 @@ final class TaskDashboardViewModel: ObservableObject {
         }
     }
 
-    func submit(type: TaskType, prompt: String) async {
+    func submit(type: TaskType, prompt: String, chainTo: ChainSpec?) async {
         guard !prompt.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         isSubmitting = true
         do {
-            let task = try await APIClient.shared.submitTask(type: type, prompt: prompt)
+            let task = try await APIClient.shared.submitTask(type: type, prompt: prompt, chainTo: chainTo)
             tasks.insert(task, at: 0)
             errorMessage = nil
         } catch {
@@ -55,9 +55,9 @@ struct TaskDashboardView: View {
                 }
             }
             .sheet(isPresented: $showingNewTask) {
-                NewTaskSheet { type, prompt in
+                NewTaskSheet { type, prompt, chainTo in
                     Task {
-                        await viewModel.submit(type: type, prompt: prompt)
+                        await viewModel.submit(type: type, prompt: prompt, chainTo: chainTo)
                         showingNewTask = false
                     }
                 }
@@ -83,6 +83,11 @@ private struct TaskRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(task.type.label).font(.headline)
+                if task.spawnedFrom != nil {
+                    Image(systemName: "arrow.triangle.branch")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 Text(task.status.rawValue)
                     .font(.caption)
@@ -113,7 +118,8 @@ private struct NewTaskSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var type: TaskType = .cryptoResearch
     @State private var prompt = ""
-    let onSubmit: (TaskType, String) -> Void
+    @State private var autoChain = false
+    let onSubmit: (TaskType, String, ChainSpec?) -> Void
 
     var body: some View {
         NavigationStack {
@@ -125,6 +131,14 @@ private struct NewTaskSheet: View {
                 }
                 TextField("What should the agent do?", text: $prompt, axis: .vertical)
                     .lineLimit(4...8)
+
+                if type != .digitalProduct {
+                    Section {
+                        Toggle("Auto-draft a write-up from the result", isOn: $autoChain)
+                    } footer: {
+                        Text("When this research finishes, it auto-queues a follow-up drafting task using the result — nothing publishes or executes on its own, you still review it in the list.")
+                    }
+                }
             }
             .navigationTitle("New Task")
             .toolbar {
@@ -132,8 +146,11 @@ private struct NewTaskSheet: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Submit") { onSubmit(type, prompt) }
-                        .disabled(prompt.trimmingCharacters(in: .whitespaces).isEmpty)
+                    Button("Submit") {
+                        let chainTo = autoChain ? ChainSpec(type: .digitalProduct, promptPrefix: "Draft a short write-up summarizing this research for a general audience:") : nil
+                        onSubmit(type, prompt, chainTo)
+                    }
+                    .disabled(prompt.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
         }

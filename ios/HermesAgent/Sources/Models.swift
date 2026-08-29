@@ -27,6 +27,11 @@ enum TaskStatus: String, Codable {
     case failed
 }
 
+struct ChainSpec: Codable {
+    let type: TaskType
+    let promptPrefix: String?
+}
+
 struct AgentTask: Codable, Identifiable {
     let id: String
     let type: TaskType
@@ -34,8 +39,21 @@ struct AgentTask: Codable, Identifiable {
     let status: TaskStatus
     let result: String?
     let error: String?
+    let chainTo: ChainSpec?
+    let spawnedFrom: String?
     let createdAt: String
     let updatedAt: String
+}
+
+struct TaskSchedule: Codable, Identifiable {
+    let id: String
+    let type: TaskType
+    let prompt: String
+    let intervalMinutes: Int
+    let chainTo: ChainSpec?
+    let createdAt: String
+    let lastRunAt: String?
+    let nextRunAt: String
 }
 
 struct ChatMessage: Codable, Identifiable, Equatable {
