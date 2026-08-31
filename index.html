@@ -3,85 +3,373 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Staff Loan Calculator</title>
+<title>Staff Loan Ledger</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Loan Calc">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23007aff'/%3E%3Ctext x='90' y='118' font-size='96' font-family='-apple-system,Helvetica,Arial' font-weight='700' fill='white' text-anchor='middle'%3E%E2%82%B9%3C/text%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-title" content="Loan Ledger">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='28' fill='%2312213A'/%3E%3Ctext x='90' y='122' font-size='92' font-family='Georgia,serif' font-weight='700' fill='%23D2A24C' text-anchor='middle'%3E%E2%82%B9%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f2f2f7; color: #1c1c1e; padding: 15px; margin: 0; }
-.card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 500px; margin: auto; }
-h2 { color: #007aff; text-align: center; margin-top: 0; font-size: 20px; }
-.group { margin-bottom: 14px; }
-label { display: block; font-weight: 600; font-size: 13px; color: #3a3a3c; margin-bottom: 5px; }
-input { width: 100%; padding: 12px; font-size: 17px; border: 1px solid #c7c7cc; border-radius: 8px; box-sizing: border-box; background: #fafafa; font-weight: 600; color: #007aff; }
-.res { background: #e8f2ff; border-radius: 8px; padding: 15px; margin-top: 15px; }
-.res-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
-.res-row span:first-child { color: #3a3a3c; }
-.res-row span:last-child { font-weight: bold; color: #007aff; }
-.highlight { border-top: 1px solid #c7c7cc; padding-top: 8px; margin-top: 8px; font-size: 15px !important; color: #005ec4 !important; }
+  :root {
+    --bg: #F2F3EF;
+    --surface: #FFFFFF;
+    --surface-2: #F9F8F4;
+    --ink: #12213A;
+    --text: #2B3542;
+    --text-muted: #6B7480;
+    --rule: #DCDEDA;
+    --accent: #A9782E;
+    --accent-strong: #8C6222;
+    --accent-soft: #F1E7D3;
+    --good: #2F6F4E;
+    --good-soft: #E3EFE7;
+    --shadow: rgba(18, 33, 58, 0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0B1420;
+      --surface: #131F30;
+      --surface-2: #0F1A28;
+      --ink: #F1EFE6;
+      --text: #D7DBE0;
+      --text-muted: #8B93A0;
+      --rule: #263140;
+      --accent: #D2A24C;
+      --accent-strong: #E4B662;
+      --accent-soft: #2A2313;
+      --good: #6FBF95;
+      --good-soft: #16241C;
+      --shadow: rgba(0, 0, 0, 0.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0B1420;
+    --surface: #131F30;
+    --surface-2: #0F1A28;
+    --ink: #F1EFE6;
+    --text: #D7DBE0;
+    --text-muted: #8B93A0;
+    --rule: #263140;
+    --accent: #D2A24C;
+    --accent-strong: #E4B662;
+    --accent-soft: #2A2313;
+    --good: #6FBF95;
+    --good-soft: #16241C;
+    --shadow: rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+    padding: 28px 16px 48px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px var(--shadow);
+    overflow: hidden;
+  }
+
+  .letterhead {
+    padding: 28px 28px 22px;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .seal {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 3px;
+  }
+  h1 {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .status-strip {
+    margin: 20px 28px 0;
+    padding: 12px 14px;
+    border-radius: 7px;
+    background: var(--accent-soft);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .status-strip.closed { background: var(--good-soft); }
+  .status-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-strong);
+  }
+  .status-strip.closed .status-label { color: var(--good); }
+  .status-date {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .section {
+    padding: 22px 28px 4px;
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 14px;
+  }
+
+  .field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 14px;
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field.wide { grid-column: 1 / -1; }
+  .field label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+  .field-input {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border-bottom: 1.5px solid var(--rule);
+    transition: border-color 0.15s ease;
+  }
+  .field-input:focus-within { border-color: var(--accent); }
+  .field-input .unit {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 14px;
+    color: var(--text-muted);
+    padding-right: 4px;
+  }
+  .field-input input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--ink);
+    padding: 8px 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="date"] { color-scheme: light; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) input[type="date"] { color-scheme: dark; }
+  }
+  :root[data-theme="dark"] input[type="date"] { color-scheme: dark; }
+
+  .ledger {
+    margin: 22px 28px 0;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+  }
+  .row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 8px 0;
+  }
+  .row .k {
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .leader {
+    flex: 1;
+    border-bottom: 1px dotted var(--rule);
+    margin-bottom: 4px;
+    min-width: 12px;
+  }
+  .row .v {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .row.milestone .v { color: var(--ink); font-weight: 600; }
+
+  .verdict {
+    margin: 18px 28px 26px;
+    padding: 18px;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    background: var(--surface-2);
+    text-align: center;
+  }
+  .verdict .cap {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+    margin: 0 0 6px;
+  }
+  .verdict .amt {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0;
+  }
+  .verdict .sub {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 4px 0 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .foot {
+    padding: 14px 28px 22px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--rule);
+  }
 </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>Bank Staff Loan Calculator</h2>
-
-    <div class="group">
-        <label>Principal Amount (₹)</label>
-        <input type="number" id="p" value="4990000" oninput="calc()">
+<div class="sheet">
+  <div class="letterhead">
+    <div class="seal">&#8377;</div>
+    <div>
+      <p class="eyebrow">Staff Housing Loan</p>
+      <h1>Repayment Ledger</h1>
     </div>
+  </div>
 
-    <div class="group">
-        <label>Accumulated Interest (₹)</label>
-        <input type="number" id="ai" value="3010000" oninput="calc()">
-    </div>
+  <div id="statusStrip" class="status-strip">
+    <span id="statusLabel" class="status-label">&mdash;</span>
+    <span id="statusDate" class="status-date">&mdash;</span>
+  </div>
 
-    <div class="group">
-        <label>Monthly Installment (₹)</label>
-        <input type="number" id="ins" value="32400" oninput="calc()">
+  <div class="section">
+    <p class="section-title">Loan Particulars</p>
+    <div class="field-grid">
+      <div class="field">
+        <label for="p">Principal Outstanding</label>
+        <div class="field-input">
+          <span class="unit">&#8377;</span>
+          <input type="number" id="p" value="4990000" inputmode="decimal">
+        </div>
+      </div>
+      <div class="field">
+        <label for="ai">Interest Outstanding</label>
+        <div class="field-input">
+          <span class="unit">&#8377;</span>
+          <input type="number" id="ai" value="3010000" inputmode="decimal">
+        </div>
+      </div>
+      <div class="field">
+        <label for="ins">Monthly Installment</label>
+        <div class="field-input">
+          <span class="unit">&#8377;</span>
+          <input type="number" id="ins" value="32400" inputmode="decimal">
+        </div>
+      </div>
+      <div class="field">
+        <label for="rate">Interest Rate</label>
+        <div class="field-input">
+          <input type="number" id="rate" value="5" step="0.1" inputmode="decimal">
+          <span class="unit">% p.a.</span>
+        </div>
+      </div>
+      <div class="field wide">
+        <label for="startDate">Next Installment Date</label>
+        <div class="field-input">
+          <input type="date" id="startDate">
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div class="group">
-        <label>Interest Rate (% per annum)</label>
-        <input type="number" id="rate" value="5" step="0.1" oninput="calc()">
+  <div class="ledger">
+    <div class="row">
+      <span class="k">Phase 1 &mdash; Principal Repayment</span>
+      <span class="leader"></span>
+      <span class="v" id="mOut">&mdash;</span>
     </div>
+    <div class="row milestone">
+      <span class="k">Date of Last Principal Payment</span>
+      <span class="leader"></span>
+      <span class="v" id="lastPOut">&mdash;</span>
+    </div>
+    <div class="row">
+      <span class="k">Interest Accrued in Phase 1</span>
+      <span class="leader"></span>
+      <span class="v" id="newAiOut">&mdash;</span>
+    </div>
+    <div class="row">
+      <span class="k">Phase 2 &mdash; Interest Repayment</span>
+      <span class="leader"></span>
+      <span class="v" id="intOut">&mdash;</span>
+    </div>
+    <div class="row milestone">
+      <span class="k">Date of Last Interest Payment</span>
+      <span class="leader"></span>
+      <span class="v" id="lastIOut">&mdash;</span>
+    </div>
+  </div>
 
-    <div class="group">
-        <label>Next Installment Date</label>
-        <input type="date" id="startDate" oninput="calc()">
-    </div>
+  <div class="verdict">
+    <p class="cap">Total Duration &amp; Outflow</p>
+    <p class="amt" id="totAmtOut">&mdash;</p>
+    <p class="sub" id="totDurOut">&mdash;</p>
+  </div>
 
-    <div class="res">
-        <div class="res-row">
-            <span>Phase 1 &mdash; Principal Repayment:</span>
-            <span id="mOut">0 Months</span>
-        </div>
-        <div class="res-row">
-            <span>Date of Last Principal Payment:</span>
-            <span id="lastPOut">-</span>
-        </div>
-        <div class="res-row">
-            <span>Interest Accrued in Phase 1:</span>
-            <span id="newAiOut">₹ 0</span>
-        </div>
-        <div class="res-row">
-            <span>Phase 2 &mdash; Interest Repayment:</span>
-            <span id="intOut">0 Months</span>
-        </div>
-        <div class="res-row">
-            <span>Date of Last Interest Payment:</span>
-            <span id="lastIOut">-</span>
-        </div>
-        <div class="res-row highlight">
-            <span>Total Duration &amp; Outflow:</span>
-            <span id="totOut">0 Years | ₹ 0</span>
-        </div>
-    </div>
+  <div class="foot" id="savedNote">Saved on this device &mdash; reopen anytime, your figures pick up where you left off.</div>
 </div>
 
 <script>
-function addMonths(date, months) {
+  var FIELDS = ['p', 'ai', 'ins', 'rate', 'startDate'];
+  var STORAGE_KEY = 'staffLoanLedger.v1';
+
+  function addMonths(date, months) {
     var d = new Date(date);
     var day = d.getDate();
     d.setDate(1);
@@ -89,21 +377,49 @@ function addMonths(date, months) {
     var lastDayOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
     d.setDate(Math.min(day, lastDayOfMonth));
     return d;
-}
+  }
 
-function formatDate(date) {
+  function monthsBetween(a, b) {
+    var m = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+    if (b.getDate() < a.getDate()) m -= 1;
+    return m;
+  }
+
+  function formatDate(date) {
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
+  }
 
-function calc() {
+  function formatMoney(n) {
+    return '₹ ' + Math.round(n).toLocaleString('en-IN');
+  }
+
+  function saveInputs() {
+    try {
+      var data = {};
+      FIELDS.forEach(function (id) { data[id] = document.getElementById(id).value; });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) { /* storage unavailable, skip silently */ }
+  }
+
+  function loadInputs() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      FIELDS.forEach(function (id) {
+        if (data[id]) document.getElementById(id).value = data[id];
+      });
+    } catch (e) { /* storage unavailable or corrupt, skip silently */ }
+  }
+
+  function calc() {
     var p = parseFloat(document.getElementById('p').value) || 0;
     var ai = parseFloat(document.getElementById('ai').value) || 0;
     var ins = parseFloat(document.getElementById('ins').value) || 0;
     var rate = parseFloat(document.getElementById('rate').value) || 0;
     var startInput = document.getElementById('startDate');
     if (!startInput.value) {
-        var today = new Date();
-        startInput.value = today.toISOString().slice(0, 10);
+      startInput.value = new Date().toISOString().slice(0, 10);
     }
     var startDate = new Date(startInput.value + 'T00:00:00');
     if (ins <= 0) ins = 1;
@@ -116,10 +432,10 @@ function calc() {
     var pMonths = 0;
     var newAi = 0;
     while (remaining > 0.005 && pMonths < 6000) {
-        newAi += remaining * monthlyRate;
-        remaining -= ins;
-        if (remaining < 0) remaining = 0;
-        pMonths++;
+      newAi += remaining * monthlyRate;
+      remaining -= ins;
+      if (remaining < 0) remaining = 0;
+      pMonths++;
     }
 
     // Phase 2: principal is fully paid, only the accumulated
@@ -132,14 +448,43 @@ function calc() {
     var lastPrincipalDate = addMonths(startDate, Math.max(pMonths - 1, 0));
     var lastInterestDate = addMonths(startDate, Math.max(totalMonths - 1, 0));
 
-    document.getElementById('mOut').innerText = pMonths + " Mos (" + (pMonths / 12).toFixed(1) + " Yrs)";
+    document.getElementById('mOut').innerText = pMonths + ' mo (' + (pMonths / 12).toFixed(1) + ' yr)';
     document.getElementById('lastPOut').innerText = formatDate(lastPrincipalDate);
-    document.getElementById('newAiOut').innerText = "₹ " + Math.round(newAi).toLocaleString('en-IN');
-    document.getElementById('intOut').innerText = intMonths + " Mos (" + (intMonths / 12).toFixed(1) + " Yrs)";
+    document.getElementById('newAiOut').innerText = formatMoney(newAi);
+    document.getElementById('intOut').innerText = intMonths + ' mo (' + (intMonths / 12).toFixed(1) + ' yr)';
     document.getElementById('lastIOut').innerText = formatDate(lastInterestDate);
-    document.getElementById('totOut').innerText = (totalMonths / 12).toFixed(1) + " Yrs | ₹ " + Math.round(totalOutflow).toLocaleString('en-IN');
-}
-calc();
+    document.getElementById('totAmtOut').innerText = formatMoney(totalOutflow);
+    document.getElementById('totDurOut').innerText = (totalMonths / 12).toFixed(1) + ' years from ' + formatDate(startDate);
+
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var strip = document.getElementById('statusStrip');
+    var label = document.getElementById('statusLabel');
+    var dateEl = document.getElementById('statusDate');
+    strip.classList.remove('closed');
+    if (today < startDate) {
+      label.innerText = 'Not yet started';
+      dateEl.innerText = 'Begins ' + formatDate(startDate);
+    } else if (today <= lastPrincipalDate) {
+      label.innerText = 'Phase 1 in progress — paying principal';
+      dateEl.innerText = monthsBetween(today, lastPrincipalDate) + ' mo to go';
+    } else if (today <= lastInterestDate) {
+      label.innerText = 'Phase 2 in progress — paying interest';
+      dateEl.innerText = monthsBetween(today, lastInterestDate) + ' mo to go';
+    } else {
+      label.innerText = 'Loan fully closed';
+      dateEl.innerText = 'Closed ' + formatDate(lastInterestDate);
+      strip.classList.add('closed');
+    }
+
+    saveInputs();
+  }
+
+  loadInputs();
+  FIELDS.forEach(function (id) {
+    document.getElementById(id).addEventListener('input', calc);
+  });
+  calc();
 </script>
 
 </body>
