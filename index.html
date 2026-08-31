@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff Loan Calculator</title>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f2f2f7; color: #1c1c1e; padding: 15px; margin: 0; }
+.card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 500px; margin: auto; }
+h2 { color: #007aff; text-align: center; margin-top: 0; font-size: 20px; }
+.group { margin-bottom: 14px; }
+label { display: block; font-weight: 600; font-size: 13px; color: #3a3a3c; margin-bottom: 5px; }
+input { width: 100%; padding: 12px; font-size: 17px; border: 1px solid #c7c7cc; border-radius: 8px; box-sizing: border-box; background: #fafafa; font-weight: 600; color: #007aff; }
+.res { background: #e8f2ff; border-radius: 8px; padding: 15px; margin-top: 15px; }
+.res-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+.res-row span:first-child { color: #3a3a3c; }
+.res-row span:last-child { font-weight: bold; color: #007aff; }
+.highlight { border-top: 1px solid #c7c7cc; padding-top: 8px; margin-top: 8px; font-size: 15px !important; color: #005ec4 !important; }
+</style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Bank Staff Loan Calculator</h2>
+
+    <div class="group">
+        <label>Principal Amount (₹)</label>
+        <input type="number" id="p" value="4990000" oninput="calc()">
+    </div>
+
+    <div class="group">
+        <label>Accumulated Interest (₹)</label>
+        <input type="number" id="ai" value="3010000" oninput="calc()">
+    </div>
+
+    <div class="group">
+        <label>Monthly Installment (₹)</label>
+        <input type="number" id="ins" value="32400" oninput="calc()">
+    </div>
+
+    <div class="res">
+        <div class="res-row">
+            <span>Phase 1 (Principal Time):</span>
+            <span id="mOut">0 Months</span>
+        </div>
+        <div class="res-row">
+            <span>New Simple Interest Accrued:</span>
+            <span id="newAiOut">₹ 0</span>
+        </div>
+        <div class="res-row">
+            <span>Phase 2 (Interest Time):</span>
+            <span id="intOut">0 Months</span>
+        </div>
+        <div class="res-row highlight">
+            <span>Total Duration & Outflow:</span>
+            <span id="totOut">0 Years | ₹ 0</span>
+        </div>
+    </div>
+</div>
+
+<script>
+function calc() {
+    var p = parseFloat(document.getElementById('p').value) || 0;
+    var ai = parseFloat(document.getElementById('ai').value) || 0;
+    var ins = parseFloat(document.getElementById('ins').value) || 1;
+    if(ins <= 0) ins = 1;
+
+    var pMonths = Math.ceil(p / ins);
+    var newAi = (p * 0.05 * (pMonths / 12)) / 2;
+    var totalInterest = ai + newAi;
+    var intMonths = Math.ceil(totalInterest / ins);
+    var totalMonths = pMonths + intMonths;
+    var totalOutflow = p + totalInterest;
+
+    document.getElementById('mOut').innerText = pMonths + " Mos (" + (pMonths/12).toFixed(1) + " Yrs)";
+    document.getElementById('newAiOut').innerText = "₹ " + Math.round(newAi).toLocaleString('en-IN');
+    document.getElementById('intOut').innerText = intMonths + " Mos (" + (intMonths/12).toFixed(1) + " Yrs)";
+    document.getElementById('totOut').innerText = (totalMonths/12).toFixed(1) + " Yrs | ₹ " + Math.round(totalOutflow).toLocaleString('en-IN');
+}
+calc();
+</script>
+
+</body>
+</html>
