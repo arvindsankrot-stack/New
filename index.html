@@ -47,10 +47,19 @@ input { width: 100%; padding: 12px; font-size: 17px; border: 1px solid #c7c7cc; 
         <input type="number" id="rate" value="5" step="0.1" oninput="calc()">
     </div>
 
+    <div class="group">
+        <label>Next Installment Date</label>
+        <input type="date" id="startDate" oninput="calc()">
+    </div>
+
     <div class="res">
         <div class="res-row">
             <span>Phase 1 &mdash; Principal Repayment:</span>
             <span id="mOut">0 Months</span>
+        </div>
+        <div class="res-row">
+            <span>Date of Last Principal Payment:</span>
+            <span id="lastPOut">-</span>
         </div>
         <div class="res-row">
             <span>Interest Accrued in Phase 1:</span>
@@ -60,6 +69,10 @@ input { width: 100%; padding: 12px; font-size: 17px; border: 1px solid #c7c7cc; 
             <span>Phase 2 &mdash; Interest Repayment:</span>
             <span id="intOut">0 Months</span>
         </div>
+        <div class="res-row">
+            <span>Date of Last Interest Payment:</span>
+            <span id="lastIOut">-</span>
+        </div>
         <div class="res-row highlight">
             <span>Total Duration &amp; Outflow:</span>
             <span id="totOut">0 Years | ₹ 0</span>
@@ -68,11 +81,31 @@ input { width: 100%; padding: 12px; font-size: 17px; border: 1px solid #c7c7cc; 
 </div>
 
 <script>
+function addMonths(date, months) {
+    var d = new Date(date);
+    var day = d.getDate();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + months);
+    var lastDayOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    d.setDate(Math.min(day, lastDayOfMonth));
+    return d;
+}
+
+function formatDate(date) {
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 function calc() {
     var p = parseFloat(document.getElementById('p').value) || 0;
     var ai = parseFloat(document.getElementById('ai').value) || 0;
     var ins = parseFloat(document.getElementById('ins').value) || 0;
     var rate = parseFloat(document.getElementById('rate').value) || 0;
+    var startInput = document.getElementById('startDate');
+    if (!startInput.value) {
+        var today = new Date();
+        startInput.value = today.toISOString().slice(0, 10);
+    }
+    var startDate = new Date(startInput.value + 'T00:00:00');
     if (ins <= 0) ins = 1;
     var monthlyRate = rate / 100 / 12;
 
@@ -96,9 +129,14 @@ function calc() {
     var totalMonths = pMonths + intMonths;
     var totalOutflow = p + totalInterest;
 
+    var lastPrincipalDate = addMonths(startDate, Math.max(pMonths - 1, 0));
+    var lastInterestDate = addMonths(startDate, Math.max(totalMonths - 1, 0));
+
     document.getElementById('mOut').innerText = pMonths + " Mos (" + (pMonths / 12).toFixed(1) + " Yrs)";
+    document.getElementById('lastPOut').innerText = formatDate(lastPrincipalDate);
     document.getElementById('newAiOut').innerText = "₹ " + Math.round(newAi).toLocaleString('en-IN');
     document.getElementById('intOut').innerText = intMonths + " Mos (" + (intMonths / 12).toFixed(1) + " Yrs)";
+    document.getElementById('lastIOut').innerText = formatDate(lastInterestDate);
     document.getElementById('totOut').innerText = (totalMonths / 12).toFixed(1) + " Yrs | ₹ " + Math.round(totalOutflow).toLocaleString('en-IN');
 }
 calc();
