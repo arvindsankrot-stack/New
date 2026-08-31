@@ -16,7 +16,7 @@ talking about.
 ```
 (no topic given)
   -> trending search terms + Reddit hot post titles   (Google Trends, Reddit - text only)
-  -> pick one trend, write an ORIGINAL script inspired by it, not copied     (Anthropic Claude)
+  -> pick one trend, write an ORIGINAL script inspired by it, not copied     (Gemini / Google AI Studio)
        (or: pass an explicit topic to skip trend discovery entirely)
   -> narration audio per scene              (edge-tts)
   -> background video clip per scene        (Pexels stock footage API)
@@ -32,7 +32,11 @@ talking about.
 - Python 3.10+
 - [ffmpeg](https://ffmpeg.org/) and `ffprobe` on `PATH`
 - API keys (see `.env.example`):
-  - **Anthropic** — script generation.
+  - **Google AI Studio (Gemini)** — script generation. Create a free key at
+    https://aistudio.google.com/apikey and set `GEMINI_API_KEY`. Defaults to
+    `gemini-2.5-flash`; override with `GEMINI_MODEL`. The script is requested
+    with a `response_schema`, so Gemini returns structurally valid JSON rather
+    than relying on the prompt to ask for it.
   - **Pexels** — free API key at https://www.pexels.com/api/, used for
     stock background footage (all videos are free to use under the Pexels
     License).
@@ -94,6 +98,9 @@ Output video is written to `output/<title>.mp4`.
   configurable in `faceless_pipeline/config.py` / `.env`.
 - `faster-whisper` downloads its model on first run; use `WHISPER_MODEL_SIZE`
   to trade off speed vs. accuracy (`tiny`/`base`/`small`/`medium`/`large-v3`).
+- Gemini 2.5 models think by default, and thinking tokens count against
+  `max_output_tokens`, so it's set to 8192 in `script_gen.py` — lowering it too
+  far can make the model spend its budget thinking and return empty text.
 - Trend sources (`faceless_pipeline/trends.py`) are read-only, low-volume,
   and text-only (Google Trends via `pytrends`, Reddit's public `hot.json`
   endpoint for a few default subreddits). Adjust `DEFAULT_SUBREDDITS` there

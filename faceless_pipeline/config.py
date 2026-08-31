@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 @dataclass
 class Config:
-    anthropic_api_key: str
-    anthropic_model: str
+    google_api_key: str
+    gemini_model: str
 
     pexels_api_key: str
 
@@ -26,8 +26,9 @@ class Config:
 
 def load_config() -> Config:
     return Config(
-        anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
-        anthropic_model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5"),
+        # Google AI Studio keys are commonly exported under either name.
+        google_api_key=os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY", ""),
+        gemini_model=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
         pexels_api_key=os.environ.get("PEXELS_API_KEY", ""),
         tts_voice=os.environ.get("TTS_VOICE", "en-US-GuyNeural"),
         whisper_model_size=os.environ.get("WHISPER_MODEL_SIZE", "base"),
