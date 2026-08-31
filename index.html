@@ -306,7 +306,7 @@
         </div>
       </div>
       <div class="field">
-        <label for="ins">Monthly Installment</label>
+        <label for="ins">Principal Phase Installment</label>
         <div class="field-input">
           <span class="unit">&#8377;</span>
           <input type="number" id="ins" value="32400" inputmode="decimal">
@@ -317,6 +317,13 @@
         <div class="field-input">
           <input type="number" id="rate" value="5" step="0.1" inputmode="decimal">
           <span class="unit">% p.a.</span>
+        </div>
+      </div>
+      <div class="field wide">
+        <label for="insInt">Interest Phase Installment <span style="font-weight:400">(leave blank to match Phase 1)</span></label>
+        <div class="field-input">
+          <span class="unit">&#8377;</span>
+          <input type="number" id="insInt" placeholder="same as Phase 1" inputmode="decimal">
         </div>
       </div>
       <div class="field wide">
@@ -366,7 +373,7 @@
 </div>
 
 <script>
-  var FIELDS = ['p', 'ai', 'ins', 'rate', 'startDate'];
+  var FIELDS = ['p', 'ai', 'ins', 'rate', 'insInt', 'startDate'];
   var STORAGE_KEY = 'staffLoanLedger.v1';
 
   function addMonths(date, months) {
@@ -417,12 +424,14 @@
     var ai = parseFloat(document.getElementById('ai').value) || 0;
     var ins = parseFloat(document.getElementById('ins').value) || 0;
     var rate = parseFloat(document.getElementById('rate').value) || 0;
+    var insInt = parseFloat(document.getElementById('insInt').value) || 0;
     var startInput = document.getElementById('startDate');
     if (!startInput.value) {
       startInput.value = new Date().toISOString().slice(0, 10);
     }
     var startDate = new Date(startInput.value + 'T00:00:00');
     if (ins <= 0) ins = 1;
+    if (insInt <= 0) insInt = ins;
     var monthlyRate = rate / 100 / 12;
 
     // Phase 1: every installment goes entirely to principal.
@@ -441,7 +450,7 @@
     // Phase 2: principal is fully paid, only the accumulated
     // interest (old + newly accrued) is repaid, no further interest.
     var totalInterest = ai + newAi;
-    var intMonths = Math.ceil(totalInterest / ins);
+    var intMonths = Math.ceil(totalInterest / insInt);
     var totalMonths = pMonths + intMonths;
     var totalOutflow = p + totalInterest;
 
