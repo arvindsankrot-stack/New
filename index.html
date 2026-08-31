@@ -118,6 +118,35 @@
     text-wrap: balance;
   }
 
+  .tabs {
+    margin: 20px 28px 0;
+    display: flex;
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 3px;
+  }
+  .tab-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 9px 8px;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .tab-btn.active {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 1px 3px var(--shadow);
+  }
+  .tab-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
   .status-strip {
     margin: 20px 28px 0;
     padding: 12px 14px;
@@ -154,6 +183,11 @@
     color: var(--text-muted);
     margin: 0 0 14px;
   }
+  .section-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: -8px 0 14px;
+  }
 
   .field-grid {
     display: grid;
@@ -167,6 +201,7 @@
     font-weight: 500;
     color: var(--text-muted);
   }
+  .field label .hint { font-weight: 400; }
   .field-input {
     position: relative;
     display: flex;
@@ -254,6 +289,7 @@
     font-weight: 700;
     color: var(--ink);
     margin: 0;
+    text-wrap: balance;
   }
   .verdict .sub {
     font-family: "IBM Plex Mono", monospace;
@@ -283,7 +319,12 @@
     </div>
   </div>
 
-  <div id="statusStrip" class="status-strip">
+  <div class="tabs" role="tablist">
+    <button type="button" id="tabTrack" class="tab-btn active" role="tab" aria-selected="true">Track by Payment</button>
+    <button type="button" id="tabPlan" class="tab-btn" role="tab" aria-selected="false">Plan by Target Year</button>
+  </div>
+
+  <div id="statusStrip" class="status-strip track-only">
     <span id="statusLabel" class="status-label">&mdash;</span>
     <span id="statusDate" class="status-date">&mdash;</span>
   </div>
@@ -305,25 +346,35 @@
           <input type="number" id="ai" value="3010000" inputmode="decimal">
         </div>
       </div>
-      <div class="field">
+
+      <div class="field track-only">
         <label for="ins">Principal Phase Installment</label>
         <div class="field-input">
           <span class="unit">&#8377;</span>
           <input type="number" id="ins" value="32400" inputmode="decimal">
         </div>
       </div>
-      <div class="field">
+      <div class="field track-only">
+        <label for="insInt">Interest Phase Installment <span class="hint">(blank = same)</span></label>
+        <div class="field-input">
+          <span class="unit">&#8377;</span>
+          <input type="number" id="insInt" placeholder="same as Phase 1" inputmode="decimal">
+        </div>
+      </div>
+
+      <div class="field wide plan-only" hidden>
+        <label for="targetYears">Close the Account Within</label>
+        <div class="field-input">
+          <input type="number" id="targetYears" value="15" step="0.5" inputmode="decimal">
+          <span class="unit">years</span>
+        </div>
+      </div>
+
+      <div class="field wide">
         <label for="rate">Interest Rate</label>
         <div class="field-input">
           <input type="number" id="rate" value="5" step="0.1" inputmode="decimal">
           <span class="unit">% p.a.</span>
-        </div>
-      </div>
-      <div class="field wide">
-        <label for="insInt">Interest Phase Installment <span style="font-weight:400">(leave blank to match Phase 1)</span></label>
-        <div class="field-input">
-          <span class="unit">&#8377;</span>
-          <input type="number" id="insInt" placeholder="same as Phase 1" inputmode="decimal">
         </div>
       </div>
       <div class="field wide">
@@ -335,7 +386,7 @@
     </div>
   </div>
 
-  <div class="ledger">
+  <div id="trackLedger" class="ledger track-only">
     <div class="row">
       <span class="k">Phase 1 &mdash; Principal Repayment</span>
       <span class="leader"></span>
@@ -363,18 +414,50 @@
     </div>
   </div>
 
-  <div class="verdict">
+  <div id="trackVerdict" class="verdict track-only">
     <p class="cap">Total Duration &amp; Outflow</p>
     <p class="amt" id="totAmtOut">&mdash;</p>
     <p class="sub" id="totDurOut">&mdash;</p>
+  </div>
+
+  <div id="planLedger" class="ledger plan-only" hidden>
+    <div class="row">
+      <span class="k">Phase 1 &mdash; Principal Repayment</span>
+      <span class="leader"></span>
+      <span class="v" id="planPOut">&mdash;</span>
+    </div>
+    <div class="row">
+      <span class="k">Interest Accrued in Phase 1</span>
+      <span class="leader"></span>
+      <span class="v" id="planNewAiOut">&mdash;</span>
+    </div>
+    <div class="row">
+      <span class="k">Phase 2 &mdash; Interest Repayment</span>
+      <span class="leader"></span>
+      <span class="v" id="planIOut">&mdash;</span>
+    </div>
+    <div class="row milestone">
+      <span class="k">Actual Closure Date</span>
+      <span class="leader"></span>
+      <span class="v" id="planClosureOut">&mdash;</span>
+    </div>
+  </div>
+
+  <div id="planVerdict" class="verdict plan-only" hidden>
+    <p class="cap">Required Monthly Installment</p>
+    <p class="amt" id="planInsOut">&mdash;</p>
+    <p class="sub" id="planSubOut">&mdash;</p>
   </div>
 
   <div class="foot" id="savedNote">Saved on this device &mdash; reopen anytime, your figures pick up where you left off.</div>
 </div>
 
 <script>
-  var FIELDS = ['p', 'ai', 'ins', 'rate', 'insInt', 'startDate'];
-  var STORAGE_KEY = 'staffLoanLedger.v1';
+  var SHARED_FIELDS = ['p', 'ai', 'rate', 'startDate'];
+  var TRACK_FIELDS = ['ins', 'insInt'];
+  var PLAN_FIELDS = ['targetYears'];
+  var STORAGE_KEY = 'staffLoanLedger.v2';
+  var mode = 'track';
 
   function addMonths(date, months) {
     var d = new Date(date);
@@ -400,10 +483,53 @@
     return '₹ ' + Math.round(n).toLocaleString('en-IN');
   }
 
+  // Phase 1: every installment goes entirely to principal; interest keeps
+  // accruing monthly on the remaining principal and is parked (added to
+  // the interest-due pool), not paid yet. Phase 2: principal is fully
+  // paid, only the accumulated interest (old + newly accrued) is repaid,
+  // with no further interest. insP/insI may be fractional (used during
+  // the Plan-tab search); display rounds separately.
+  function computeSchedule(p, ai, rate, insP, insI) {
+    if (insP <= 0) insP = 1;
+    if (insI <= 0) insI = insP;
+    var monthlyRate = rate / 100 / 12;
+    var pMonths = Math.max(Math.ceil(p / insP), 0);
+    var newAi = monthlyRate * (pMonths * p - insP * pMonths * (pMonths - 1) / 2);
+    var totalInterest = ai + newAi;
+    var intMonths = totalInterest > 0 ? Math.ceil(totalInterest / insI) : 0;
+    return {
+      pMonths: pMonths,
+      newAi: newAi,
+      intMonths: intMonths,
+      totalMonths: pMonths + intMonths,
+      totalInterest: totalInterest,
+      totalOutflow: p + totalInterest
+    };
+  }
+
+  // Binary search for the smallest uniform installment that clears the
+  // loan within desiredMonths (totalMonths is monotonically non-increasing
+  // as the installment grows, so bisection converges cleanly).
+  function solveInstallment(p, ai, rate, desiredMonths) {
+    if (desiredMonths <= 0) return null;
+    var hi = Math.max(p + ai, 1);
+    if (computeSchedule(p, ai, rate, hi, hi).totalMonths > desiredMonths) return null;
+    var lo = 0;
+    for (var i = 0; i < 60; i++) {
+      var mid = (lo + hi) / 2;
+      if (computeSchedule(p, ai, rate, mid, mid).totalMonths <= desiredMonths) hi = mid; else lo = mid;
+    }
+    var required = Math.ceil(hi / 10) * 10;
+    while (computeSchedule(p, ai, rate, required, required).totalMonths > desiredMonths) required += 10;
+    return required;
+  }
+
   function saveInputs() {
     try {
-      var data = {};
-      FIELDS.forEach(function (id) { data[id] = document.getElementById(id).value; });
+      var data = { mode: mode };
+      SHARED_FIELDS.concat(TRACK_FIELDS, PLAN_FIELDS).forEach(function (id) {
+        data[id] = document.getElementById(id).value;
+      });
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) { /* storage unavailable, skip silently */ }
   }
@@ -413,57 +539,34 @@
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       var data = JSON.parse(raw);
-      FIELDS.forEach(function (id) {
+      SHARED_FIELDS.concat(TRACK_FIELDS, PLAN_FIELDS).forEach(function (id) {
         if (data[id]) document.getElementById(id).value = data[id];
       });
+      if (data.mode) mode = data.mode;
     } catch (e) { /* storage unavailable or corrupt, skip silently */ }
   }
 
-  function calc() {
-    var p = parseFloat(document.getElementById('p').value) || 0;
-    var ai = parseFloat(document.getElementById('ai').value) || 0;
-    var ins = parseFloat(document.getElementById('ins').value) || 0;
-    var rate = parseFloat(document.getElementById('rate').value) || 0;
-    var insInt = parseFloat(document.getElementById('insInt').value) || 0;
+  function getStartDate() {
     var startInput = document.getElementById('startDate');
-    if (!startInput.value) {
-      startInput.value = new Date().toISOString().slice(0, 10);
-    }
-    var startDate = new Date(startInput.value + 'T00:00:00');
-    if (ins <= 0) ins = 1;
-    if (insInt <= 0) insInt = ins;
-    var monthlyRate = rate / 100 / 12;
+    if (!startInput.value) startInput.value = new Date().toISOString().slice(0, 10);
+    return new Date(startInput.value + 'T00:00:00');
+  }
 
-    // Phase 1: every installment goes entirely to principal.
-    // Interest keeps accruing monthly on the remaining principal
-    // and is parked (added to the interest-due pool), not paid yet.
-    var remaining = p;
-    var pMonths = 0;
-    var newAi = 0;
-    while (remaining > 0.005 && pMonths < 6000) {
-      newAi += remaining * monthlyRate;
-      remaining -= ins;
-      if (remaining < 0) remaining = 0;
-      pMonths++;
-    }
+  function calcTrack(p, ai, rate, startDate) {
+    var ins = parseFloat(document.getElementById('ins').value) || 0;
+    var insInt = parseFloat(document.getElementById('insInt').value) || 0;
+    var s = computeSchedule(p, ai, rate, ins, insInt);
 
-    // Phase 2: principal is fully paid, only the accumulated
-    // interest (old + newly accrued) is repaid, no further interest.
-    var totalInterest = ai + newAi;
-    var intMonths = Math.ceil(totalInterest / insInt);
-    var totalMonths = pMonths + intMonths;
-    var totalOutflow = p + totalInterest;
+    var lastPrincipalDate = addMonths(startDate, Math.max(s.pMonths - 1, 0));
+    var lastInterestDate = addMonths(startDate, Math.max(s.totalMonths - 1, 0));
 
-    var lastPrincipalDate = addMonths(startDate, Math.max(pMonths - 1, 0));
-    var lastInterestDate = addMonths(startDate, Math.max(totalMonths - 1, 0));
-
-    document.getElementById('mOut').innerText = pMonths + ' mo (' + (pMonths / 12).toFixed(1) + ' yr)';
+    document.getElementById('mOut').innerText = s.pMonths + ' mo (' + (s.pMonths / 12).toFixed(1) + ' yr)';
     document.getElementById('lastPOut').innerText = formatDate(lastPrincipalDate);
-    document.getElementById('newAiOut').innerText = formatMoney(newAi);
-    document.getElementById('intOut').innerText = intMonths + ' mo (' + (intMonths / 12).toFixed(1) + ' yr)';
+    document.getElementById('newAiOut').innerText = formatMoney(s.newAi);
+    document.getElementById('intOut').innerText = s.intMonths + ' mo (' + (s.intMonths / 12).toFixed(1) + ' yr)';
     document.getElementById('lastIOut').innerText = formatDate(lastInterestDate);
-    document.getElementById('totAmtOut').innerText = formatMoney(totalOutflow);
-    document.getElementById('totDurOut').innerText = (totalMonths / 12).toFixed(1) + ' years from ' + formatDate(startDate);
+    document.getElementById('totAmtOut').innerText = formatMoney(s.totalOutflow);
+    document.getElementById('totDurOut').innerText = (s.totalMonths / 12).toFixed(1) + ' years from ' + formatDate(startDate);
 
     var today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -485,15 +588,63 @@
       dateEl.innerText = 'Closed ' + formatDate(lastInterestDate);
       strip.classList.add('closed');
     }
+  }
 
+  function calcPlan(p, ai, rate, startDate) {
+    var years = parseFloat(document.getElementById('targetYears').value) || 0;
+    var desiredMonths = Math.round(years * 12);
+    var required = solveInstallment(p, ai, rate, desiredMonths);
+
+    if (required === null) {
+      document.getElementById('planInsOut').innerText = 'Not achievable';
+      document.getElementById('planSubOut').innerText = 'Even paying everything at once needs more than ' + years.toFixed(1) + ' yr — try a longer target.';
+      document.getElementById('planPOut').innerText = '—';
+      document.getElementById('planNewAiOut').innerText = '—';
+      document.getElementById('planIOut').innerText = '—';
+      document.getElementById('planClosureOut').innerText = '—';
+      return;
+    }
+
+    var s = computeSchedule(p, ai, rate, required, required);
+    var closureDate = addMonths(startDate, Math.max(s.totalMonths - 1, 0));
+
+    document.getElementById('planInsOut').innerText = formatMoney(required) + ' / mo';
+    document.getElementById('planSubOut').innerText = 'to close in ' + years.toFixed(1) + ' yr, by ' + formatDate(closureDate);
+    document.getElementById('planPOut').innerText = s.pMonths + ' mo (' + (s.pMonths / 12).toFixed(1) + ' yr)';
+    document.getElementById('planNewAiOut').innerText = formatMoney(s.newAi);
+    document.getElementById('planIOut').innerText = s.intMonths + ' mo (' + (s.intMonths / 12).toFixed(1) + ' yr)';
+    document.getElementById('planClosureOut').innerText = formatDate(closureDate);
+  }
+
+  function recalc() {
+    var p = parseFloat(document.getElementById('p').value) || 0;
+    var ai = parseFloat(document.getElementById('ai').value) || 0;
+    var rate = parseFloat(document.getElementById('rate').value) || 0;
+    var startDate = getStartDate();
+    if (mode === 'track') calcTrack(p, ai, rate, startDate); else calcPlan(p, ai, rate, startDate);
     saveInputs();
   }
 
+  function setMode(m) {
+    mode = m;
+    document.getElementById('tabTrack').classList.toggle('active', m === 'track');
+    document.getElementById('tabTrack').setAttribute('aria-selected', m === 'track');
+    document.getElementById('tabPlan').classList.toggle('active', m === 'plan');
+    document.getElementById('tabPlan').setAttribute('aria-selected', m === 'plan');
+    var trackOnly = document.querySelectorAll('.track-only');
+    var planOnly = document.querySelectorAll('.plan-only');
+    for (var i = 0; i < trackOnly.length; i++) trackOnly[i].hidden = m !== 'track';
+    for (var j = 0; j < planOnly.length; j++) planOnly[j].hidden = m !== 'plan';
+    recalc();
+  }
+
   loadInputs();
-  FIELDS.forEach(function (id) {
-    document.getElementById(id).addEventListener('input', calc);
+  document.getElementById('tabTrack').addEventListener('click', function () { setMode('track'); });
+  document.getElementById('tabPlan').addEventListener('click', function () { setMode('plan'); });
+  SHARED_FIELDS.concat(TRACK_FIELDS, PLAN_FIELDS).forEach(function (id) {
+    document.getElementById(id).addEventListener('input', recalc);
   });
-  calc();
+  setMode(mode);
 </script>
 
 </body>
