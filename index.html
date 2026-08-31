@@ -42,21 +42,26 @@ input { width: 100%; padding: 12px; font-size: 17px; border: 1px solid #c7c7cc; 
         <input type="number" id="ins" value="32400" oninput="calc()">
     </div>
 
+    <div class="group">
+        <label>Interest Rate (% per annum)</label>
+        <input type="number" id="rate" value="5" step="0.1" oninput="calc()">
+    </div>
+
     <div class="res">
         <div class="res-row">
-            <span>Phase 1 (Principal Time):</span>
+            <span>Phase 1 &mdash; Principal Repayment:</span>
             <span id="mOut">0 Months</span>
         </div>
         <div class="res-row">
-            <span>New Simple Interest Accrued:</span>
+            <span>Interest Accrued in Phase 1:</span>
             <span id="newAiOut">₹ 0</span>
         </div>
         <div class="res-row">
-            <span>Phase 2 (Interest Time):</span>
+            <span>Phase 2 &mdash; Interest Repayment:</span>
             <span id="intOut">0 Months</span>
         </div>
         <div class="res-row highlight">
-            <span>Total Duration & Outflow:</span>
+            <span>Total Duration &amp; Outflow:</span>
             <span id="totOut">0 Years | ₹ 0</span>
         </div>
     </div>
@@ -66,20 +71,35 @@ input { width: 100%; padding: 12px; font-size: 17px; border: 1px solid #c7c7cc; 
 function calc() {
     var p = parseFloat(document.getElementById('p').value) || 0;
     var ai = parseFloat(document.getElementById('ai').value) || 0;
-    var ins = parseFloat(document.getElementById('ins').value) || 1;
-    if(ins <= 0) ins = 1;
+    var ins = parseFloat(document.getElementById('ins').value) || 0;
+    var rate = parseFloat(document.getElementById('rate').value) || 0;
+    if (ins <= 0) ins = 1;
+    var monthlyRate = rate / 100 / 12;
 
-    var pMonths = Math.ceil(p / ins);
-    var newAi = (p * 0.05 * (pMonths / 12)) / 2;
+    // Phase 1: every installment goes entirely to principal.
+    // Interest keeps accruing monthly on the remaining principal
+    // and is parked (added to the interest-due pool), not paid yet.
+    var remaining = p;
+    var pMonths = 0;
+    var newAi = 0;
+    while (remaining > 0.005 && pMonths < 6000) {
+        newAi += remaining * monthlyRate;
+        remaining -= ins;
+        if (remaining < 0) remaining = 0;
+        pMonths++;
+    }
+
+    // Phase 2: principal is fully paid, only the accumulated
+    // interest (old + newly accrued) is repaid, no further interest.
     var totalInterest = ai + newAi;
     var intMonths = Math.ceil(totalInterest / ins);
     var totalMonths = pMonths + intMonths;
     var totalOutflow = p + totalInterest;
 
-    document.getElementById('mOut').innerText = pMonths + " Mos (" + (pMonths/12).toFixed(1) + " Yrs)";
+    document.getElementById('mOut').innerText = pMonths + " Mos (" + (pMonths / 12).toFixed(1) + " Yrs)";
     document.getElementById('newAiOut').innerText = "₹ " + Math.round(newAi).toLocaleString('en-IN');
-    document.getElementById('intOut').innerText = intMonths + " Mos (" + (intMonths/12).toFixed(1) + " Yrs)";
-    document.getElementById('totOut').innerText = (totalMonths/12).toFixed(1) + " Yrs | ₹ " + Math.round(totalOutflow).toLocaleString('en-IN');
+    document.getElementById('intOut').innerText = intMonths + " Mos (" + (intMonths / 12).toFixed(1) + " Yrs)";
+    document.getElementById('totOut').innerText = (totalMonths / 12).toFixed(1) + " Yrs | ₹ " + Math.round(totalOutflow).toLocaleString('en-IN');
 }
 calc();
 </script>
