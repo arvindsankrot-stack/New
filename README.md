@@ -4,6 +4,14 @@ A small agent-pool system: a backend where worker agents pull tasks "buffet styl
 from a shared queue, plus a chat endpoint. Two frontends talk to it: a web app
 (open it from any phone browser, no install) and a SwiftUI iOS app.
 
+## Other tools served alongside it
+
+- **`server/public/gems.html`** — GEMS Compliance Marks calculator (OCRMS/
+  OCTMS scoring). Fully standalone: no login, no backend call, no AI
+  dependency — reads an uploaded Excel pivot export entirely in the browser
+  via SheetJS. Served as a static page at `/gems.html` on the same deployed
+  URL, alongside the agent-pool app.
+
 ## Scope and limits (read this first)
 
 This is a **research and content-drafting assistant**, not an autonomous trader:
