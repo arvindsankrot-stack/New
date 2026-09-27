@@ -1,7 +1,7 @@
 // App-shell service worker: caches only the static app files (never user data,
 // which lives encrypted in IndexedDB). Network-first for navigations so updates
 // arrive promptly; cache-first for hashed assets.
-const CACHE = "tc-shell-v2";
+const CACHE = "tc-shell-v3";
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["./", "./index.html", "./manifest.webmanifest", "./icon.svg"])).then(() => self.skipWaiting()));
