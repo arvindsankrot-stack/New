@@ -7,6 +7,7 @@ import { DataSettings } from "./more/DataSettings";
 import { Notifications } from "./more/Notifications";
 import { Photos } from "./more/Photos";
 import { ProfileSettings } from "./more/ProfileSettings";
+import { HealthSetup } from "./more/HealthSetup";
 
 export function More({ sub }: { sub?: string }) {
   const { go, lock } = useApp();
@@ -25,6 +26,8 @@ export function More({ sub }: { sub?: string }) {
       return <Coach onBack={back} />;
     case "data":
       return <DataSettings onBack={back} />;
+    case "health":
+      return <HealthSetup onBack={back} />;
     case "about":
       return <About onBack={back} />;
   }
@@ -35,6 +38,7 @@ export function More({ sub }: { sub?: string }) {
         <ListItem icon="chat" title="Coach" sub="Log in plain words; get trend-based suggestions" onClick={() => go("more", "coach")} />
         <ListItem icon="calendar" title="Monthly check-in" sub="Measurements, photos, BP and report" onClick={() => go("more", "checkin")} />
         <ListItem icon="camera" title="Progress photos" sub="Private, encrypted on this device" onClick={() => go("more", "photos")} />
+        <ListItem icon="heart" title="Apple Health & Zepp watch" sub="Import steps, calories burned and walking" onClick={() => go("more", "health")} />
         <ListItem icon="bell" title="Reminders" sub="Morning, workout, food, relaxation, medication" onClick={() => go("more", "notifications")} />
       </Card>
       <Card>

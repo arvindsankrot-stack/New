@@ -72,6 +72,7 @@ const TABLE_KEYS: Record<keyof Tables, true> = {
   photos: true,
   notifications: true,
   coach: true,
+  activity: true,
 };
 
 export function usePosition() {

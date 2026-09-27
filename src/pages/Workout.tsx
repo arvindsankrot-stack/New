@@ -8,6 +8,7 @@ import { cardioWeeklyTarget, phaseFor, planFor, prescribe, TEMPLATES, templateFo
 import { cardioMinutes } from "../domain/reports";
 import { Card, Chips, Empty, Field, Notice, PageHead, Progress, Slider, Stepper, toast } from "../ui/components";
 import { Icon } from "../ui/icons";
+import { ActivityCard } from "./ActivityCard";
 
 export function Workout({ sub }: { sub?: string }) {
   if (sub?.startsWith("start")) return <Session templateId={sub.split(":")[1]} />;
@@ -83,6 +84,8 @@ function Overview() {
           <Icon name="walk" size={18} /> Log {cardioMin ?? 0} min
         </button>
       </Card>
+
+      <ActivityCard cute={false} />
 
       <Card title="This week">
         {Array.from({ length: 7 }, (_, i) => {

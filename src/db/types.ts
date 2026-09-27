@@ -298,6 +298,15 @@ export interface CoachMessage extends BaseRecord {
   food_status?: "pending" | "logged" | "dismissed";
 }
 
+/** Daily activity totals, imported from Apple Health (via a Shortcut) or typed in. One record per day. */
+export interface ActivityDay extends BaseRecord {
+  steps?: number;
+  active_kcal?: number;
+  walk_km?: number;
+  exercise_min?: number;
+  source: "apple_health" | "manual";
+}
+
 export interface Tables {
   profile: Profile;
   measurements: BodyMeasurement;
@@ -318,6 +327,7 @@ export interface Tables {
   photos: ProgressPhoto;
   notifications: NotificationPref;
   coach: CoachMessage;
+  activity: ActivityDay;
 }
 
 export type TableName = keyof Tables;
@@ -342,4 +352,5 @@ export const TABLES: TableName[] = [
   "photos",
   "notifications",
   "coach",
+  "activity",
 ];

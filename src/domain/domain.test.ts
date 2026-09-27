@@ -223,3 +223,14 @@ describe("glow words", () => {
     expect(glowWords("waist", 32, 32.5, g).pos).toBe(0);
   });
 });
+
+import { parseHealthText } from "./activity";
+describe("health import", () => {
+  it("parses shortcut text with units and separators", () => {
+    expect(parseHealthText("TC steps=8,123 count kcal=412.5 kcal km=5.61 km min=34 min")).toEqual({ steps: 8123, active_kcal: 413, walk_km: 5.61, exercise_min: 34 });
+  });
+  it("handles miles, missing values and junk", () => {
+    expect(parseHealthText("TC steps=5000 km=2 mi")).toEqual({ steps: 5000, walk_km: 3.22 });
+    expect(parseHealthText("hello")).toBeNull();
+  });
+});

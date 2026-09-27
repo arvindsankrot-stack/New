@@ -15,6 +15,7 @@ import { durationHours } from "../domain/safety";
 import { Notice, toast } from "../ui/components";
 import { Icon } from "../ui/icons";
 import { WeighIn } from "./Home";
+import { ActivityCard } from "./ActivityCard";
 
 const AFFIRMATIONS = [
   "Soft, strong and becoming more you every day.",
@@ -279,6 +280,8 @@ export function SimpleHome() {
           {ws.length === 0 ? " Weigh in any time." : ""}
         </p>
       </section>
+
+      <ActivityCard />
 
       <button className="list-item card" style={{ padding: 16 }} onClick={() => go("more", "coach")}>
         <span style={{ fontSize: 28 }}>💬</span>

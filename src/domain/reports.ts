@@ -32,10 +32,14 @@ export function sessionsCompleted(db: DB, from: string, to: string): number {
   ).length;
 }
 
+/** Per day, the larger of logged cardio and watch exercise minutes (so the same walk isn't counted twice). */
 export function cardioMinutes(db: DB, from: string, to: string): number {
-  return db.workouts
-    .filter((w) => w.date >= from && w.date <= to)
-    .reduce((a, w) => a + (w.cardio_minutes ?? 0), 0);
+  const byDay = new Map<string, number>();
+  for (const w of db.workouts) if (w.date >= from && w.date <= to) byDay.set(w.date, (byDay.get(w.date) ?? 0) + (w.cardio_minutes ?? 0));
+  for (const a of db.activity ?? []) if (a.date >= from && a.date <= to && a.exercise_min) byDay.set(a.date, Math.max(byDay.get(a.date) ?? 0, a.exercise_min));
+  let total = 0;
+  for (const v of byDay.values()) total += v;
+  return total;
 }
 
 export function hypnoStats(db: DB, from: string, to: string) {
