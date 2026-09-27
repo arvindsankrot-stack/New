@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { allFoods, logWeight } from "../../actions";
 import { useDB, usePosition, useProfile } from "../../app-context";
 import { all, remove, upsert, upsertMany } from "../../db/store";
+import type { CoachMessage } from "../../db/types";
 import { currentValue, seriesFor, signed } from "../../domain/body";
 import { interpret, type CoachLine } from "../../domain/coach";
 import { addDays } from "../../domain/dates";
@@ -9,7 +10,7 @@ import { dosesOn } from "../../domain/hrt";
 import { averageIntake, dayTotals, proteinCompliance, weightSeries, weightTrend } from "../../domain/nutrition";
 import { missedYesterday, planFor } from "../../domain/program";
 import { sessionsCompleted } from "../../domain/reports";
-import { PageHead } from "../../ui/components";
+import { PageHead, Stepper, toast } from "../../ui/components";
 
 const TAG: Record<CoachLine["label"], string> = { "TRACKED FACT": "fact", ESTIMATE: "estimate", GOAL: "goal", MEDICAL: "medical" };
 
@@ -48,20 +49,20 @@ export function Coach({ onBack }: { onBack: () => void }) {
   const end = useRef<HTMLDivElement>(null);
   const msgs = [...db.coach].sort((a, b) => (a.created_at < b.created_at ? -1 : 1)).slice(-60);
 
-  useEffect(() => end.current?.scrollIntoView({ block: "end" }), [msgs.length]);
+  useEffect(() => end.current?.scrollIntoView({ block: "end" }), [msgs.length, msgs[msgs.length - 1]?.food_status]);
 
+  let pendingFood: CoachMessage["pending_food"];
   const respond = (input: string): CoachLine[] => {
+    pendingFood = undefined;
     const today = pos.today;
     const a = interpret(input, allFoods(), today);
-    const proteinGoal = Math.round((profile.protein_target.min + profile.protein_target.max) / 2);
     switch (a.type) {
       case "log_food": {
-        upsertMany("foodEntries", a.entries);
-        const t = dayTotals(all("foodEntries"), today);
+        pendingFood = a.entries;
+        const kcal = a.entries.reduce((x, e) => x + e.kcal, 0);
+        const protein = a.entries.reduce((x, e) => x + e.protein, 0);
         return [
-          ...a.entries.map((e) => ({ label: "ESTIMATE" as const, text: `${e.servings} × ${e.name}: ~${e.kcal} kcal, ${e.protein} g protein` })),
-          { label: "TRACKED FACT", text: `Logged ${a.entries.length} item${a.entries.length > 1 ? "s" : ""}. Today so far: ${Math.round(t.kcal)} kcal, ${Math.round(t.protein)} g protein.` },
-          { label: "GOAL", text: t.protein >= profile.protein_target.min ? "Protein target reached for today." : `${Math.round(proteinGoal - t.protein)} g protein to go — a shake, eggs, paneer or soya would close the gap.` },
+          { label: "ESTIMATE", text: `I found ${a.entries.length} item${a.entries.length > 1 ? "s" : ""}: about ${Math.round(kcal)} kcal and ${Math.round(protein)} g protein. Check the amounts below, then tap "Add to food log".` },
         ];
       }
       case "log_weight": {
@@ -129,7 +130,8 @@ export function Coach({ onBack }: { onBack: () => void }) {
     if (!t) return;
     upsert("coach", { role: "user", text: t, date: pos.today });
     const reply = respond(t);
-    setTimeout(() => upsert("coach", { role: "coach", text: encode(reply), date: pos.today }), 10);
+    const food = pendingFood;
+    setTimeout(() => upsert("coach", { role: "coach", text: encode(reply), date: pos.today, pending_food: food, food_status: food ? "pending" : undefined }), 10);
     setText("");
   };
 
@@ -147,23 +149,86 @@ export function Coach({ onBack }: { onBack: () => void }) {
           />
         )}
         {msgs.map((m) => (
-          <Bubble key={m.id} role={m.role} text={m.text} />
+          <div key={m.id} className="chat">
+            <Bubble role={m.role} text={m.text} />
+            {m.pending_food && <FoodConfirm msg={m} />}
+          </div>
         ))}
-        <div ref={end} />
       </div>
-      <form
-        className="row"
-        style={{ position: "sticky", bottom: "calc(var(--nav-h) + env(safe-area-inset-bottom) + 8px)", marginTop: 16, background: "var(--bg)", paddingTop: 8 }}
-        onSubmit={(e) => {
-          e.preventDefault();
-          send();
-        }}
-      >
-        <input className="input grow" value={text} onChange={(e) => setText(e.target.value)} placeholder="Message the coach" aria-label="Message the coach" />
-        <button className="btn primary" disabled={!text.trim()}>
-          Send
-        </button>
-      </form>
+      <div ref={end} style={{ height: 88, scrollMarginBottom: "calc(var(--nav-h) + 90px)" }} />
+      <div className="composer">
+        <form
+          className="row"
+          onSubmit={(e) => {
+            e.preventDefault();
+            send();
+          }}
+        >
+          <input className="input grow" enterKeyHint="send" value={text} onChange={(e) => setText(e.target.value)} placeholder="e.g. 2 roti, dal, 150g chicken" aria-label="Message the coach" />
+          <button className="btn primary" disabled={!text.trim()}>
+            Send
+          </button>
+        </form>
+      </div>
     </>
+  );
+}
+
+/** Recognised foods wait here until the user confirms, so nothing is logged by surprise. */
+function FoodConfirm({ msg }: { msg: CoachMessage }) {
+  const profile = useProfile();
+  const items = msg.pending_food ?? [];
+  const foods = allFoods();
+  if (msg.food_status === "dismissed") return <div className="muted small" style={{ alignSelf: "flex-start" }}>Not logged.</div>;
+  if (msg.food_status === "logged") {
+    const t = dayTotals(all("foodEntries"), items[0]?.date ?? msg.date);
+    return (
+      <div className="bubble coach">
+        <span className="tag fact">TRACKED FACT</span>Added {items.length} item{items.length > 1 ? "s" : ""} to your food log. That day so far: {Math.round(t.kcal)} kcal, {Math.round(t.protein)} g protein
+        {t.protein < profile.protein_target.min ? ` (${Math.round(profile.protein_target.min - t.protein)} g to reach your protein minimum).` : " — protein target reached."}
+      </div>
+    );
+  }
+  const setServings = (i: number, servings: number) => {
+    const next = items.map((e, j) => {
+      if (j !== i) return e;
+      const f = foods.find((x) => x.id === e.food_id);
+      if (!f) return { ...e, servings };
+      return { ...e, servings, kcal: Math.round(f.kcal * servings), protein: Math.round(f.protein * servings * 10) / 10, carbs: Math.round(f.carbs * servings * 10) / 10, fat: Math.round(f.fat * servings * 10) / 10 };
+    }).filter((e) => e.servings > 0);
+    upsert("coach", { ...msg, pending_food: next, food_status: next.length ? "pending" : "dismissed" });
+  };
+  return (
+    <div className="card" style={{ margin: 0, alignSelf: "stretch" }}>
+      {items.map((e, i) => (
+        <div key={i} style={{ padding: "6px 0", borderTop: i ? "1px solid var(--border)" : undefined }}>
+          <div className="spread">
+            <b>{e.name}</b>
+            <span className="muted small num">{e.kcal} kcal · {e.protein} g P</span>
+          </div>
+          <div className="row small" style={{ marginTop: 4 }}>
+            <span className="muted">Servings</span>
+            <div className="grow">
+              <Stepper value={e.servings} onChange={(v) => setServings(i, v ?? 0)} step={0.5} digits={1} min={0} max={20} label={`${e.name} servings`} />
+            </div>
+          </div>
+        </div>
+      ))}
+      <div className="grid2" style={{ marginTop: 10 }}>
+        <button className="btn" onClick={() => upsert("coach", { ...msg, food_status: "dismissed" })}>
+          Cancel
+        </button>
+        <button
+          className="btn primary"
+          onClick={() => {
+            upsertMany("foodEntries", items);
+            upsert("coach", { ...msg, food_status: "logged" });
+            toast("Added to food log");
+          }}
+        >
+          Add to food log
+        </button>
+      </div>
+    </div>
   );
 }

@@ -4,7 +4,7 @@ import { remove, upsert } from "../../db/store";
 import type { ChastitySession } from "../../db/types";
 import { fmtDate, fmtTime, isoDateOf } from "../../domain/dates";
 import { chastityAlert, durationHours, type SafetyAlert } from "../../domain/safety";
-import { Card, Check, Field, Notice, Slider, Stat, toast } from "../../ui/components";
+import { Card, Check, Field, Notice, Seg, Slider, Stat, toast } from "../../ui/components";
 import { Icon } from "../../ui/icons";
 
 type Flags = Pick<ChastitySession, "irritation" | "numbness" | "pain" | "swelling" | "discoloration" | "skin_injury" | "urination_difficulty">;
@@ -44,7 +44,10 @@ export function ChastityTab() {
   const [comfort, setComfort] = useState(active?.comfort ?? 8);
   const [skin, setSkin] = useState(active?.skin_condition ?? 8);
   const [notes, setNotes] = useState(active?.notes ?? "");
-  const [startAt, setStartAt] = useState(localInput(new Date()));
+  const [mode, setMode] = useState<"past" | "now">("past");
+  const [startAt, setStartAt] = useState(localInput(new Date(Date.now() - 2 * 3600_000)));
+  const [endAt, setEndAt] = useState(localInput(new Date()));
+  const badRange = mode === "past" && new Date(endAt) <= new Date(startAt);
   const liveAlert = chastityAlert({ ...flags, comfort });
   const history = [...db.chastity].sort((a, b) => (a.start < b.start ? 1 : -1));
   const last30 = db.chastity.filter((c) => c.start >= new Date(Date.now() - 30 * 86400000).toISOString() && c.worn);
@@ -75,7 +78,8 @@ export function ChastityTab() {
       </Card>
 
       {active ? (
-        <Card title="Current session" action={<span className="muted small">since {fmtTime(active.start)}{isoDateOf(active.start) !== today ? `, ${fmtDate(isoDateOf(active.start))}` : ""}</span>}>
+        <Card title="Timer running" action={<span className="muted small">since {fmtTime(active.start)}{isoDateOf(active.start) !== today ? `, ${fmtDate(isoDateOf(active.start))}` : ""}</span>}>
+          <p className="small muted">You started a session and it's still open. Tap "End session" when you take it off, or delete it below if you started it by mistake.</p>
           <SafetyBanner alert={liveAlert} />
           <h3>How is it right now?</h3>
           {FLAG_LABELS.map(([k, l]) => (
@@ -98,34 +102,90 @@ export function ChastityTab() {
           </div>
         </Card>
       ) : (
-        <Card title="Start a session">
-          <Field label="Start time">
-            <input className="input" type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
-          </Field>
-          <div className="grid2">
-            <button
-              className="btn primary"
-              onClick={() => {
-                upsert("chastity", { date: isoDateOf(new Date(startAt).toISOString()), worn: true, start: new Date(startAt).toISOString(), comfort: 8, ...NO_FLAGS });
-                setFlags(NO_FLAGS);
-                setComfort(8);
-                setSkin(8);
-                setNotes("");
-                toast("Session started");
-              }}
-            >
-              Start
-            </button>
-            <button
-              className="btn"
-              onClick={() => {
-                upsert("chastity", { date: today, worn: false, start: new Date().toISOString(), end: new Date().toISOString(), ...NO_FLAGS });
-                toast("Logged: not worn today");
-              }}
-            >
-              Not worn today
-            </button>
-          </div>
+        <Card title="Log">
+          <Seg
+            value={mode}
+            onChange={(m) => {
+              setMode(m);
+              setStartAt(localInput(m === "now" ? new Date() : new Date(Date.now() - 2 * 3600_000)));
+              setEndAt(localInput(new Date()));
+            }}
+            options={[
+              { value: "past", label: "Finished session" },
+              { value: "now", label: "Wearing now" },
+            ]}
+          />
+          {mode === "past" ? (
+            <>
+              <p className="small muted" style={{ marginTop: 10 }}>Enter when you put it on and took it off. It's saved as a finished session.</p>
+              <div>
+                <Field label="Put on">
+                  <input className="input" type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
+                </Field>
+                <Field label="Taken off">
+                  <input className="input" type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} />
+                </Field>
+              </div>
+              {badRange && <p className="small" style={{ color: "var(--danger)" }}>"Taken off" must be after "Put on".</p>}
+              <SafetyBanner alert={liveAlert} />
+              <h3>Anything to note?</h3>
+              {FLAG_LABELS.map(([k, l]) => (
+                <Check key={k} on={flags[k]} onToggle={() => setFlags({ ...flags, [k]: !flags[k] })}>
+                  {l}
+                </Check>
+              ))}
+              <Slider label="Comfort" value={comfort} onChange={setComfort} min={1} max={10} left="uncomfortable" right="comfortable" />
+              <Slider label="Skin condition afterwards" value={skin} onChange={setSkin} min={1} max={10} left="sore" right="healthy" />
+              <Field label="Notes">
+                <textarea className="input" value={notes} onChange={(e) => setNotes(e.target.value)} />
+              </Field>
+              <button
+                className="btn primary block"
+                disabled={badRange}
+                onClick={() => {
+                  const start = new Date(startAt).toISOString();
+                  upsert("chastity", { date: isoDateOf(start), worn: true, start, end: new Date(endAt).toISOString(), ...flags, comfort, skin_condition: skin, notes: notes || undefined });
+                  toast("Session saved");
+                  setFlags(NO_FLAGS);
+                  setComfort(8);
+                  setSkin(8);
+                  setNotes("");
+                }}
+              >
+                Save session
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="small muted" style={{ marginTop: 10 }}>Starts a timer that keeps running until you tap "End session" when you take it off. You can check in on comfort while it runs.</p>
+              <Field label="Put on at">
+                <input className="input" type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
+              </Field>
+              <button
+                className="btn primary block"
+                onClick={() => {
+                  upsert("chastity", { date: isoDateOf(new Date(startAt).toISOString()), worn: true, start: new Date(startAt).toISOString(), comfort: 8, ...NO_FLAGS });
+                  setFlags(NO_FLAGS);
+                  setComfort(8);
+                  setSkin(8);
+                  setNotes("");
+                  toast("Timer started");
+                }}
+              >
+                Start timer
+              </button>
+            </>
+          )}
+          <button
+            className="btn ghost block"
+            style={{ marginTop: 10 }}
+            onClick={() => {
+              upsert("chastity", { date: today, worn: false, start: new Date().toISOString(), end: new Date().toISOString(), ...NO_FLAGS });
+              toast("Logged: not worn today");
+            }}
+          >
+            Not worn today
+          </button>
         </Card>
       )}
 

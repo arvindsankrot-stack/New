@@ -291,6 +291,9 @@ export interface NotificationPref extends BaseRecord {
 export interface CoachMessage extends BaseRecord {
   role: "user" | "coach";
   text: string;
+  /** Foods the coach recognised, waiting for the user to confirm before logging. */
+  pending_food?: Omit<FoodEntry, "id" | "user_id" | "created_at" | "updated_at">[];
+  food_status?: "pending" | "logged" | "dismissed";
 }
 
 export interface Tables {

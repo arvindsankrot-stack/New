@@ -84,6 +84,20 @@ function Shell({ lock }: { lock: () => void }) {
     };
   }, [lock, lockMs]);
 
+  // iOS keeps the fixed tab bar above the keyboard, where it covers inputs. Hide it while typing.
+  useEffect(() => {
+    const isField = (t: EventTarget | null) => t instanceof HTMLElement && t.matches("input:not([type=checkbox]):not([type=range]):not([type=file]), textarea, select");
+    const on = (e: FocusEvent) => isField(e.target) && document.body.classList.add("typing");
+    const off = () => setTimeout(() => !isField(document.activeElement) && document.body.classList.remove("typing"), 50);
+    document.addEventListener("focusin", on);
+    document.addEventListener("focusout", off);
+    return () => {
+      document.removeEventListener("focusin", on);
+      document.removeEventListener("focusout", off);
+      document.body.classList.remove("typing");
+    };
+  }, []);
+
   useEffect(() => {
     checkReminders();
     const id = setInterval(() => checkReminders(), 30_000);
