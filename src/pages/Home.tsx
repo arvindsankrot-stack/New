@@ -12,8 +12,15 @@ import { durationHours } from "../domain/safety";
 import { EXERCISES } from "../domain/exercises";
 import { Card, Check, Notice, Progress, Sheet, Stepper, toast } from "../ui/components";
 import { Icon } from "../ui/icons";
+import { SimpleHome } from "./SimpleHome";
+import { upsert } from "../db/store";
 
 export function Home() {
+  const profile = useProfile();
+  return profile.simple_home === false ? <DetailedHome /> : <SimpleHome />;
+}
+
+function DetailedHome() {
   const db = useDB();
   const profile = useProfile();
   const pos = usePosition();
@@ -55,9 +62,14 @@ export function Home() {
             {phase.title} · {phase.focus}
           </div>
         </div>
-        <button className="iconbtn" onClick={lock} aria-label="Lock app">
-          <Icon name="lock" />
-        </button>
+        <div className="row">
+          <button className="btn sm" onClick={() => upsert("profile", { ...profile, simple_home: true })}>
+            Simple view
+          </button>
+          <button className="iconbtn" onClick={lock} aria-label="Lock app">
+            <Icon name="lock" />
+          </button>
+        </div>
       </header>
 
       {!pos.started && <Notice kind="info" title="Programme hasn't started yet">Day 1 is {fmtDate(profile.program_start, { day: "numeric", month: "long" })}. You can still log anything now.</Notice>}
@@ -294,7 +306,7 @@ export function Home() {
   );
 }
 
-function WeighIn({ open, onClose, today, last }: { open: boolean; onClose: () => void; today: string; last: number }) {
+export function WeighIn({ open, onClose, today, last }: { open: boolean; onClose: () => void; today: string; last: number }) {
   const [kg, setKg] = useState<number | undefined>(last);
   return (
     <Sheet open={open} onClose={onClose} title="Weigh-in">

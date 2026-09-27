@@ -39,6 +39,8 @@ export interface Profile extends BaseRecord {
   modules: { hypno: boolean; chastity: boolean; pelvic: boolean; feminization: boolean };
   hypno_daily_goal_min: number;
   cardio_weekly_goal_min: number;
+  /** Cute, low-number home screen (default on). */
+  simple_home?: boolean;
 }
 
 export type MeasureKey =

@@ -885,3 +885,131 @@ html,
 body {
   overflow-x: hidden;
 }
+
+/* ---------- Simple (cute) home ---------- */
+.hero {
+  border-radius: 22px;
+  padding: 18px 18px 14px;
+  margin: 4px 0 12px;
+  color: #3a1428;
+  background: linear-gradient(135deg, #ffd6e7 0%, #f7b8d2 55%, #e9c6ff 100%);
+}
+:root[data-theme="dark"] .hero {
+  color: #fff0f6;
+  background: linear-gradient(135deg, #5b2141 0%, #7a2d57 55%, #4b2c6e 100%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .hero {
+    color: #fff0f6;
+    background: linear-gradient(135deg, #5b2141 0%, #7a2d57 55%, #4b2c6e 100%);
+  }
+}
+.hero-hello {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.hero-chapter {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+.hero-quote {
+  font-size: 16px;
+  font-style: italic;
+  margin: 12px 0 10px;
+}
+.hero-btn {
+  background: rgba(255, 255, 255, 0.35);
+  border-color: transparent;
+  color: inherit;
+}
+.hearts {
+  font-size: 22px;
+  letter-spacing: 4px;
+}
+.todo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 0;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--border);
+  text-align: left;
+  cursor: pointer;
+}
+.todo:first-of-type {
+  border-top: 0;
+}
+.todo-emoji {
+  font-size: 30px;
+  width: 44px;
+  text-align: center;
+  flex: none;
+}
+.todo-title {
+  display: block;
+  font-weight: 700;
+}
+.todo-sub {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+}
+.todo-check {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: var(--on-accent);
+}
+.todo.done .todo-check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.todo.done .todo-title {
+  text-decoration: line-through;
+  text-decoration-color: var(--accent);
+  opacity: 0.75;
+}
+.celebrate {
+  text-align: center;
+  font-weight: 700;
+  color: var(--accent-2);
+  margin: 10px 0 0;
+}
+.glow-row {
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+.glow-row:first-of-type {
+  border-top: 0;
+}
+.glow-track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  margin: 12px 18px 8px 0;
+  background: linear-gradient(90deg, var(--surface-2), var(--accent-soft));
+}
+.glow-dot,
+.glow-goal {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  line-height: 1;
+  transition: left 0.4s ease;
+}
+.glow-goal {
+  right: -18px;
+}

@@ -209,3 +209,17 @@ describe("chastity safety", () => {
   });
   it("check on irritation", () => expect(chastityAlert({ ...ok, irritation: true })?.level).toBe("check"));
 });
+
+import { glowWords } from "../pages/SimpleHome";
+describe("glow words", () => {
+  it("describes progress without numbers", () => {
+    const g = { min: 26, max: 28 };
+    expect(glowWords("waist", 32, 32, g).pos).toBe(0);
+    const half = glowWords("waist", 32, 30, g);
+    expect(half.pos).toBeCloseTo(0.5);
+    expect(half.text).not.toMatch(/\d/);
+    expect(glowWords("waist", 32, 27.5, g).pos).toBe(1);
+    expect(glowWords("hips", 39.5, 40.5, { min: 41, max: 43 }).text).toContain("fuller");
+    expect(glowWords("waist", 32, 32.5, g).pos).toBe(0);
+  });
+});
