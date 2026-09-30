@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="referrer" content="no-referrer" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="HRT Journey" />
+<meta name="theme-color" content="#f7b8d2" />
+<title>HRT Journey</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23e27aa2'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle'%3E%F0%9F%8C%B8%3C/text%3E%3C/svg%3E" />
+<style>
+:root {
+  --bg: #fdf6f9;
+  --surface: #ffffff;
+  --surface-2: #f8eaf1;
+  --border: #efdbe5;
+  --text: #2a1a22;
+  --muted: #7d6671;
+  --accent: #c2527f;
+  --accent-2: #9c3862;
+  --accent-soft: #fbe1ec;
+  --lilac: #9b7fd6;
+  --lilac-soft: #ece4fb;
+  --now: #2a1a22;
+  --grid: #f0e2e9;
+  --shadow: 0 1px 2px rgba(60, 20, 40, .05), 0 8px 24px rgba(60, 20, 40, .06);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #150f14;
+    --surface: #1f171d;
+    --surface-2: #2a1f27;
+    --border: #3a2b35;
+    --text: #f7ecf2;
+    --muted: #b39aa7;
+    --accent: #e27aa2;
+    --accent-2: #f3a3c2;
+    --accent-soft: #3b2130;
+    --lilac: #b39cf0;
+    --lilac-soft: #2d2442;
+    --now: #f7ecf2;
+    --grid: #2d222a;
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #150f14; --surface: #1f171d; --surface-2: #2a1f27; --border: #3a2b35; --text: #f7ecf2; --muted: #b39aa7;
+  --accent: #e27aa2; --accent-2: #f3a3c2; --accent-soft: #3b2130; --lilac: #b39cf0; --lilac-soft: #2d2442; --now: #f7ecf2;
+  --grid: #2d222a; --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--text); overflow-x: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
+  font-size: 16px; line-height: 1.45; -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+.wrap { max-width: 980px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 40px); }
+header.hero {
+  border-radius: 26px; padding: 22px 20px 20px; margin-bottom: 16px;
+  background: radial-gradient(120% 140% at 0% 0%, #ffe0ee 0%, #f8bdd6 45%, #d9c4ff 100%);
+  color: #3a1428;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) header.hero { background: radial-gradient(120% 140% at 0% 0%, #6b2549 0%, #5a2346 45%, #3e2b66 100%); color: #fff0f6; } }
+:root[data-theme="dark"] header.hero { background: radial-gradient(120% 140% at 0% 0%, #6b2549 0%, #5a2346 45%, #3e2b66 100%); color: #fff0f6; }
+.hero h1 { margin: 0; padding-right: 56px; font-size: 30px; letter-spacing: -.02em; line-height: 1.1; }
+.hero p { margin: 6px 0 0; opacity: .85; }
+.grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 820px) { .grid { grid-template-columns: 1.1fr .9fr; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 18px; box-shadow: var(--shadow); min-width: 0; }
+.card h2 { font-size: 18px; margin: 0 0 4px; letter-spacing: -.01em; }
+.sub { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+.tiny { font-size: 12px; color: var(--muted); }
+
+.stage { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
+.stage figure { margin: 0; text-align: center; }
+.stage figcaption { font-size: 12px; color: var(--muted); font-weight: 600; margin-top: 4px; }
+.stage svg { width: 100%; height: auto; display: block; max-height: 380px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; font-size: 12px; color: var(--muted); margin: 10px 0 2px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 18px; height: 10px; border-radius: 3px; display: inline-block; }
+
+.timebar { margin-top: 12px; }
+.monthlabel { display: flex; justify-content: space-between; align-items: baseline; }
+.monthlabel b { font-size: 22px; letter-spacing: -.02em; }
+input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
+.row { display: flex; gap: 10px; align-items: center; }
+.btn {
+  min-height: 44px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--border);
+  background: var(--surface-2); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn { white-space: nowrap; flex: none; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.chip { min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-weight: 600; font-size: 13px; cursor: pointer; }
+.chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-2); }
+
+.effects { margin-top: 4px; }
+.effect { display: grid; grid-template-columns: 34px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); align-items: start; }
+.effect:first-child { border-top: 0; }
+.effect .emo { font-size: 24px; line-height: 1.2; text-align: center; }
+.effect .t { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.effect .t b { font-size: 15px; }
+.pill { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; white-space: nowrap; background: var(--surface-2); color: var(--muted); }
+.pill.go { background: var(--accent-soft); color: var(--accent-2); }
+.pill.full { background: var(--lilac-soft); color: var(--lilac); }
+.meter { height: 8px; border-radius: 999px; background: var(--surface-2); margin: 6px 0 4px; overflow: hidden; }
+.meter > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--lilac)); transition: width .25s ease; }
+.effect p { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+.gantt svg { width: 100%; height: auto; display: block; }
+.gantt text { fill: var(--muted); font-size: 11px; }
+.gantt .lbl { fill: var(--text); font-size: 12px; font-weight: 600; }
+
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.field span { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+.field input { width: 100%; min-height: 46px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); padding: 8px 12px; font-size: 16px; -webkit-appearance: none; appearance: none; }
+.note { border-radius: 16px; padding: 12px 14px; background: var(--lilac-soft); font-size: 13.5px; margin-top: 16px; }
+.note b { display: block; margin-bottom: 2px; }
+.ratio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.ratio div { background: var(--surface-2); border-radius: 14px; padding: 10px; text-align: center; }
+.ratio b { display: block; font-size: 20px; letter-spacing: -.02em; }
+.ratio span { font-size: 11px; color: var(--muted); font-weight: 600; }
+.theme { position: absolute; top: 18px; right: 18px; }
+.heroWrap { position: relative; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="heroWrap">
+    <header class="hero">
+      <h1>Your HRT journey 🌸</h1>
+      <p>See how feminizing HRT usually changes the body over time, drawn from your own measurements.</p>
+    </header>
+    <button class="btn theme" id="themeBtn" aria-label="Toggle dark mode">🌙</button>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Your shape over time</h2>
+      <p class="sub">Solid line = you now, drawn from your measurements. Pink area = the range where bodies often move by this month.</p>
+      <div class="stage">
+        <figure><svg id="front" viewBox="0 0 200 300" role="img" aria-label="Front silhouette"></svg><figcaption>Front</figcaption></figure>
+        <figure><svg id="side" viewBox="0 0 200 300" role="img" aria-label="Side silhouette"></svg><figcaption>Side</figcaption></figure>
+      </div>
+      <div class="legend">
+        <span><i class="sw" style="border:2px solid var(--now)"></i>You now</span>
+        <span><i class="sw" style="background:var(--accent-soft);border:1px solid var(--accent)"></i>Typical range at this month</span>
+      </div>
+      <div class="timebar">
+        <div class="monthlabel"><b id="monthText">Month 6</b><span class="tiny" id="monthWhen"></span></div>
+        <input type="range" id="month" min="0" max="48" value="6" aria-label="Months on HRT" />
+        <div class="row">
+          <button class="btn primary" id="play">▶︎ Play</button>
+          <div class="chips" style="margin:0" id="jumps"></div>
+        </div>
+      </div>
+      <div class="ratio">
+        <div><b id="rBust">—</b><span>bust − underbust now</span></div>
+        <div><b id="rWhr">—</b><span>waist ÷ hips now</span></div>
+        <div><b id="rWhere" style="font-size:16px">—</b><span>you are here</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>What's changing at <span id="monthText2">month 6</span></h2>
+      <p class="sub">Typical timings from the Endocrine Society guideline. Everyone is different.</p>
+      <div class="effects" id="effects"></div>
+      <div class="chips"><button class="chip" id="privBtn" aria-pressed="false">Show private changes</button></div>
+    </section>
+
+    <section class="card gantt" style="grid-column: 1 / -1">
+      <h2>The big picture</h2>
+      <p class="sub">When each change usually begins (light) and reaches its fullest (deep), across the first four years.</p>
+      <svg id="gantt" role="img" aria-label="Timeline of HRT changes"></svg>
+    </section>
+
+    <section class="card" style="grid-column: 1 / -1">
+      <h2>Your measurements</h2>
+      <p class="sub">In inches. Saved only in this browser on your phone, never sent anywhere.</p>
+      <div class="fields">
+        <label class="field"><span>Bust</span><input inputmode="decimal" id="in_bust" placeholder="e.g. 38" /></label>
+        <label class="field"><span>Underbust</span><input inputmode="decimal" id="in_underbust" placeholder="e.g. 33" /></label>
+        <label class="field"><span>Waist</span><input inputmode="decimal" id="in_waist" placeholder="e.g. 32" /></label>
+        <label class="field"><span>Belly (at navel)</span><input inputmode="decimal" id="in_belly" placeholder="e.g. 37" /></label>
+        <label class="field"><span>Hips</span><input inputmode="decimal" id="in_hips" placeholder="e.g. 39.5" /></label>
+        <label class="field"><span>Shoulders (across)</span><input inputmode="decimal" id="in_shoulders" placeholder="e.g. 16" /></label>
+        <label class="field" style="grid-column:1/-1"><span>HRT (re)start date</span><input type="date" id="in_start" /></label>
+      </div>
+      <div class="note">
+        <b>Please read 💕</b>
+        This is an illustration of the usual <i>direction</i> of change, not a forecast of your body or of any size. Genetics, age, hormone levels, time and training all change the result. Breast tissue from your earlier HRT may still be there, and new changes build on where you are now. Bone structure (shoulders, height, hands) doesn't change with HRT. Talk your own expectations through with your clinician.
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- Guideline timings (Hembree et al., Endocrine Society 2017, Table 13) ----------
+  const EFFECTS = [
+    { id: "skin", short: "Skin", emo: "🌸", t: "Softer, less oily skin", on: [3, 6], max: null, p: "Often one of the first things people notice." },
+    { id: "breast", short: "Breasts", emo: "💗", t: "Breast development", on: [3, 6], max: [24, 36], p: "Begins as tender buds. Final size varies widely, so no size can be promised." },
+    { id: "fat", short: "Hips & bum", emo: "🍑", t: "Fat moves to hips & bum", on: [3, 6], max: [24, 60], p: "New fat settles lower, less on the tummy. Glute training shapes this a lot." },
+    { id: "muscle", short: "Muscle", emo: "💪", t: "Less muscle mass", on: [3, 6], max: [12, 24], p: "Strength training keeps you strong and supports your curves." },
+    { id: "hair", short: "Body hair", emo: "✨", t: "Finer, slower body hair", on: [6, 12], max: [36, 48], p: "Facial hair usually also needs laser or electrolysis." },
+    { id: "scalp", short: "Scalp hair", emo: "💇‍♀️", t: "Scalp hair loss slows", on: [1, 3], max: [12, 24], p: "Lost hair usually doesn't regrow." },
+    { id: "libido", short: "Libido", emo: "💭", t: "Lower libido", on: [1, 3], max: [12, 24], p: "Very individual.", priv: true },
+    { id: "erections", short: "Erections", emo: "🌙", t: "Fewer spontaneous erections", on: [1, 3], max: [3, 6], p: "Usually an early change.", priv: true },
+    { id: "testes", short: "Testes", emo: "🔹", t: "Smaller testicular volume", on: [3, 6], max: [24, 36], p: "Fertility can be affected.", priv: true },
+  ];
+  const progress = (e, m) => {
+    if (m < e.on[0]) return { f: 0, s: "Usually not yet", c: "" };
+    if (m < e.on[1]) return { f: 0.1 * (m - e.on[0]) / (e.on[1] - e.on[0]), s: "Often just starting", c: "go" };
+    const end = e.max ? e.max[1] : e.on[1] + 12;
+    const f = Math.min(1, 0.1 + 0.9 * (m - e.on[1]) / (end - e.on[1]));
+    const full = e.max ? m >= e.max[0] : m >= end;
+    return { f, s: full ? "Around its fullest" : "Usually developing", c: full ? "full" : "go" };
+  };
+  const eff = (id, m) => progress(EFFECTS.find(e => e.id === id), m).f;
+
+  // ---------- State ----------
+  const KEY = "hrt-journey-v1";
+  const store = {
+    get() { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { return {}; } },
+    set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch {} },
+  };
+  const DEFAULTS = { bust: 38, underbust: 33, waist: 32, belly: 37, hips: 39.5, shoulders: 16 };
+  let saved = store.get();
+  let showPriv = false;
+  const $ = id => document.getElementById(id);
+  const meas = () => {
+    const out = {};
+    for (const k of Object.keys(DEFAULTS)) {
+      const v = parseFloat(String(saved[k] ?? "").replace(",", "."));
+      out[k] = isFinite(v) && v > 0 ? v : DEFAULTS[k];
+    }
+    return out;
+  };
+
+  // ---------- Silhouettes ----------
+  const smooth = pts => {
+    let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+      d += ` C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)},${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)},${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+    }
+    return d;
+  };
+  // Illustrative response multipliers: low / high ends of a typical range (relative, not inches).
+  const RANGE = { low: 0.35, high: 1 };
+
+  function frontShape(M, b, f, mu) {
+    const k = 0.98; // circumference inches -> half-width units
+    const cx = 100;
+    const side = [
+      [38, 9],
+      [54, 15],
+      [64, M.shoulders * 2.55 - 1.5 * mu],
+      [88, M.underbust * k * 1.05 - 1 * mu],
+      [110, M.underbust * k + 1.2 * b],
+      [128, M.underbust * k * 0.95],
+      [158, M.waist * k * 0.82 - 0.6 * f],
+      [182, M.belly * k * 0.86 - 2 * f],
+      [208, M.hips * k * 0.98 + 4.5 * f],
+      [236, M.hips * k * 0.92 + 3.6 * f],
+      [288, M.hips * k * 0.5 + 1 * f],
+    ];
+    const right = side.map(([y, w]) => [cx + w, y]);
+    const left = side.slice().reverse().map(([y, w]) => [cx - w, y]);
+    const outline = `${smooth(right)} L${cx + 5},288 L${cx - 5},288 ${smooth(left).replace(/^M/, "L")} Z`;
+    const diff = Math.max(0, M.bust - M.underbust);
+    const r = 5 + diff * 1.1 + b * 9;
+    const bust = [cx - 15, cx + 15].map(x => `M${(x - r).toFixed(1)},110 Q${x},${(110 + r * 1.3).toFixed(1)} ${(x + r).toFixed(1)},110`).join(" ");
+    return { outline, bust };
+  }
+
+  function sideShape(M, b, f, mu) {
+    const back = 78; // x of the back line
+    const depth = c => c * 0.62; // circumference -> front-to-back depth units
+    const diff = Math.max(0, M.bust - M.underbust);
+    // [x, y] going down the front, then back up the rear
+    const front = [
+      [back + 18, 38],
+      [back + 20, 58],
+      [back + depth(M.underbust) * 0.9 - 1 * mu, 84],
+      [back + depth(M.underbust) + diff * 1.3 + b * 11, 110],
+      [back + depth(M.underbust) * 0.9, 132],
+      [back + depth(M.waist) * 0.82 - 0.8 * f, 160],
+      [back + depth(M.belly) * 0.88 - 2.5 * f, 184],
+      [back + depth(M.hips) * 0.7, 214],
+      [back + depth(M.hips) * 0.6, 244],
+      [back + depth(M.hips) * 0.42, 288],
+    ];
+    const rear = [
+      [back - 2, 288],
+      [back - 8 - 2 * f, 244],
+      [back - 14 - 7 * f, 212],
+      [back - 3, 184],
+      [back + 2, 160],
+      [back - 1, 124],
+      [back - 5, 84],
+      [back - 1, 58],
+      [back + 4, 38],
+    ];
+    return smooth(front) + " " + smooth(rear).replace(/^M/, "L") + " Z";
+  }
+
+  function drawFigures(m) {
+    const M = meas();
+    const b = eff("breast", m), f = eff("fat", m), mu = eff("muscle", m);
+    const hi = frontShape(M, b * RANGE.high, f * RANGE.high, mu);
+    const lo = frontShape(M, b * RANGE.low, f * RANGE.low, mu * RANGE.low);
+    const now = frontShape(M, 0, 0, 0);
+    $("front").innerHTML = `
+      <circle cx="100" cy="22" r="16" fill="var(--surface-2)" stroke="var(--muted)" stroke-width="1.2"/>
+      <path d="${hi.outline}" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.2" stroke-opacity=".6"/>
+      <path d="${lo.outline}" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>
+      <path d="${hi.bust}" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="${now.outline}" fill="none" stroke="var(--now)" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="${now.bust}" fill="none" stroke="var(--now)" stroke-width="1.4" stroke-linecap="round"/>`;
+    const sHi = sideShape(M, b * RANGE.high, f * RANGE.high, mu);
+    const sLo = sideShape(M, b * RANGE.low, f * RANGE.low, mu * RANGE.low);
+    const sNow = sideShape(M, 0, 0, 0);
+    $("side").innerHTML = `
+      <circle cx="96" cy="22" r="16" fill="var(--surface-2)" stroke="var(--muted)" stroke-width="1.2"/>
+      <path d="${sHi}" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.2" stroke-opacity=".6"/>
+      <path d="${sLo}" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 3"/>
+      <path d="${sNow}" fill="none" stroke="var(--now)" stroke-width="1.8" stroke-linejoin="round"/>`;
+  }
+
+  // ---------- Effects list ----------
+  function drawEffects(m) {
+    $("effects").innerHTML = EFFECTS.filter(e => showPriv || !e.priv).map(e => {
+      const p = progress(e, m);
+      const when = `Starts ${e.on[0]}–${e.on[1]} mo${e.max ? ` · fullest ${fmtR(e.max)}` : ""}`;
+      return `<div class="effect"><div class="emo">${e.emo}</div><div>
+        <div class="t"><b>${e.t}</b><span class="pill ${p.c}">${p.s}</span></div>
+        <div class="meter"><i style="width:${Math.round(p.f * 100)}%"></i></div>
+        <p>${when}. ${e.p}</p></div></div>`;
+    }).join("");
+  }
+  const fmtR = ([a, b]) => a >= 12 ? `${+(a / 12).toFixed(1)}–${+(b / 12).toFixed(1)} yrs` : `${a}–${b} mo`;
+
+  // ---------- Gantt ----------
+  function drawGantt(m) {
+    const list = EFFECTS.filter(e => showPriv || !e.priv);
+    const box = $("gantt").parentElement.clientWidth - 36;
+    const W = Math.max(320, box), narrow = W < 600, L = narrow ? 118 : 250, R = 12, rowH = narrow ? 34 : 30, top = 22, H = top + list.length * rowH + 26, MAXM = 48;
+    const x = mo => L + (Math.min(mo, MAXM) / MAXM) * (W - L - R);
+    const nowM = monthsOnHrt();
+    let s = `<defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".35"/><stop offset="1" stop-color="var(--lilac)"/></linearGradient></defs>`;
+    for (let mo = 0; mo <= MAXM; mo += narrow ? 12 : 6) {
+      s += `<line x1="${x(mo)}" x2="${x(mo)}" y1="${top - 6}" y2="${H - 22}" stroke="var(--grid)"/>`;
+      s += `<text x="${x(mo)}" y="${H - 6}" text-anchor="middle">${mo === 0 ? "start" : mo % 12 === 0 ? mo / 12 + " yr" : mo + " mo"}</text>`;
+    }
+    list.forEach((e, i) => {
+      const y = top + i * rowH;
+      const end = e.max ? e.max[1] : MAXM;
+      s += `<text class="lbl" x="${L - 8}" y="${y + 16}" text-anchor="end">${e.emo} ${narrow ? e.short : e.t}</text>`;
+      s += `<rect x="${x(e.on[0])}" y="${y + 5}" width="${x(e.on[1]) - x(e.on[0])}" height="14" rx="7" fill="var(--accent)" opacity=".22"/>`;
+      s += `<rect x="${x(e.on[1])}" y="${y + 5}" width="${Math.max(4, x(end) - x(e.on[1]))}" height="14" rx="7" fill="url(#g)" opacity="${e.max ? 1 : .45}"/>`;
+      if (e.max) s += `<rect x="${x(e.max[0])}" y="${y + 5}" width="${Math.max(4, x(e.max[1]) - x(e.max[0]))}" height="14" rx="7" fill="var(--lilac)" opacity=".9"/>`;
+    });
+    s += `<line x1="${x(m)}" x2="${x(m)}" y1="${top - 10}" y2="${H - 22}" stroke="var(--accent)" stroke-width="2.5"/>`;
+    s += `<circle cx="${x(m)}" cy="${top - 10}" r="5" fill="var(--accent)"/>`;
+    if (nowM != null && nowM >= 0 && nowM <= MAXM) {
+      s += `<line x1="${x(nowM)}" x2="${x(nowM)}" y1="${top - 6}" y2="${H - 22}" stroke="var(--now)" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+      s += `<text x="${x(nowM) + 4}" y="${top - 8}" style="fill:var(--text);font-weight:700">you are here</text>`;
+    }
+    const g = $("gantt");
+    g.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    g.innerHTML = s;
+  }
+
+  // ---------- Helpers ----------
+  function monthsOnHrt() {
+    if (!saved.start) return null;
+    const d = (Date.now() - new Date(saved.start + "T00:00:00").getTime()) / 86400000 / 30.44;
+    return d >= 0 ? d : null;
+  }
+  function monthWhen(m) {
+    if (!saved.start) return "Add your start date below";
+    const d = new Date(saved.start + "T00:00:00");
+    d.setMonth(d.getMonth() + m);
+    return "≈ " + d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  }
+
+  function render() {
+    const m = +$("month").value;
+    const label = m === 0 ? "Starting point" : m < 12 ? `Month ${m}` : `Month ${m} · ${m % 12 === 0 ? (m === 12 ? "1 year" : m / 12 + " years") : +(m / 12).toFixed(1) + " years"}`;
+    $("monthText").textContent = label;
+    $("monthText2").textContent = m === 0 ? "the start" : `month ${m}`;
+    $("monthWhen").textContent = monthWhen(m);
+    drawFigures(m);
+    drawEffects(m);
+    drawGantt(m);
+    const M = meas();
+    $("rBust").textContent = (M.bust - M.underbust).toFixed(1) + "″";
+    $("rWhr").textContent = (M.waist / M.hips).toFixed(2);
+    const now = monthsOnHrt();
+    $("rWhere").textContent = now == null ? "set date" : now < 1 ? "just began" : `month ${Math.floor(now)}`;
+  }
+
+  // ---------- Wiring ----------
+  for (const k of [...Object.keys(DEFAULTS), "start"]) {
+    const el = $("in_" + k);
+    if (saved[k] != null) el.value = saved[k];
+    el.addEventListener("input", () => {
+      saved = { ...saved, [k]: el.value || undefined };
+      store.set(saved);
+      render();
+    });
+  }
+  $("month").addEventListener("input", render);
+  addEventListener("resize", () => drawGantt(+$("month").value));
+  const jumps = [["Now", null], ["3 mo", 3], ["6 mo", 6], ["1 yr", 12], ["2 yrs", 24], ["3 yrs", 36]];
+  $("jumps").innerHTML = jumps.map(([l, v]) => `<button class="chip" data-v="${v ?? "now"}">${l}</button>`).join("");
+  $("jumps").addEventListener("click", e => {
+    const v = e.target.dataset?.v;
+    if (!v) return;
+    const n = v === "now" ? Math.round(monthsOnHrt() ?? 0) : +v;
+    $("month").value = Math.min(48, n);
+    render();
+  });
+  let timer = null;
+  $("play").addEventListener("click", () => {
+    if (timer) { clearInterval(timer); timer = null; $("play").textContent = "▶︎ Play"; return; }
+    if (+$("month").value >= 48) $("month").value = 0;
+    $("play").textContent = "❚❚ Pause";
+    timer = setInterval(() => {
+      const v = +$("month").value + 1;
+      $("month").value = v;
+      render();
+      if (v >= 48) { clearInterval(timer); timer = null; $("play").textContent = "▶︎ Play"; }
+    }, 180);
+  });
+  $("privBtn").addEventListener("click", () => {
+    showPriv = !showPriv;
+    $("privBtn").classList.toggle("on", showPriv);
+    $("privBtn").setAttribute("aria-pressed", String(showPriv));
+    $("privBtn").textContent = showPriv ? "Hide private changes" : "Show private changes";
+    render();
+  });
+  $("themeBtn").addEventListener("click", () => {
+    const dark = document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.dataset.theme = dark ? "light" : "dark";
+    $("themeBtn").textContent = dark ? "🌙" : "☀️";
+  });
+
+  const startM = monthsOnHrt();
+  if (startM != null) $("month").value = Math.min(48, Math.round(startM));
+  render();
+})();
+</script>
+</body>
+</html>
