@@ -195,11 +195,14 @@
 
 <div class="card">
   <h2><span class="step-num">2</span> OCTMS <span class="badge">On-site · max 3</span></h2>
-  <label>OCTMS report — Excel pivot table</label>
+  <label>OCTMS report — current non-complied export (not the pivot)</label>
   <div class="file-row">
     <input type="file" id="octmsFile" accept=".xlsx,.xls">
   </div>
   <div class="filename" id="octmsFileName"></div>
+  <div class="note">Upload the export that lists what's STILL non-complied as of today (with BRANCH_ALPHA and
+    PARAMETER_VALUE columns) — not the full initial visit report. A row existing there IS the violation; once a
+    branch fixes a parameter it simply drops off your next export.</div>
 
   <label>Unmapped parameter codes — default risk rating</label>
   <select id="unmappedDefault">
@@ -406,15 +409,41 @@ function findPivotSheet(wb, headerMatch){
 
 function round2(n){ return Math.round(n*100)/100; }
 
-// Resolve {rows, headerRowIdx} for OCRMS/OCTMS from the loaded workbook
+// Resolve {rows, headerRowIdx} for OCRMS from the loaded workbook (pivot format)
 function resolveOcrmsRows(){
   if(!ocrmsSource) return null;
   return findPivotSheet(ocrmsSource.workbook, 'row labels');
 }
 
+// Find a sheet/row whose header row contains ALL of the given column names,
+// anywhere in the row (case-insensitive, order doesn't matter) — for a flat
+// export rather than a pivot table.
+function findFlatSheet(wb, requiredHeaders){
+  const wanted = requiredHeaders.map(h => h.toLowerCase());
+  for(const name of wb.SheetNames){
+    const ws = wb.Sheets[name];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+    for(let i=0;i<rows.length;i++){
+      const row = rows[i];
+      if(!row) continue;
+      const colIdx = {};
+      let foundAll = true;
+      for(const h of wanted){
+        const idx = row.findIndex(c => c && String(c).trim().toLowerCase() === h);
+        if(idx === -1){ foundAll = false; break; }
+        colIdx[h] = idx;
+      }
+      if(foundAll) return {rows, headerRowIdx:i, colIdx};
+    }
+  }
+  return null;
+}
+
+// OCTMS now reads the flat "currently non-complied" export directly — a row
+// existing there already IS the violation signal, no pivoting needed.
 function resolveOctmsRows(){
   if(!octmsSource) return null;
-  return findPivotSheet(octmsSource.workbook, 'parameter');
+  return findFlatSheet(octmsSource.workbook, ['branch_alpha', 'parameter_value']);
 }
 
 async function calcOcrms(){
@@ -497,30 +526,34 @@ async function calcOctms(){
   const out = {ok:false};
   if(!octmsSource){ flags.push('OCTMS file not uploaded — Parts A &amp; B skipped.'); return out; }
   const found = resolveOctmsRows();
-  if(!found){ flags.push('Could not find an OCTMS pivot table (expected a "Parameter" header row).'); return out; }
-  const {rows, headerRowIdx} = found;
-  const header = rows[headerRowIdx];
-  const branchCols = [];
-  for(let c=1;c<header.length;c++){
-    const h = header[c];
-    if(h && String(h).trim() && String(h).trim().toLowerCase()!=='grand total' && String(h).trim().toLowerCase()!=='(blank)'){
-      branchCols.push({idx:c, name:String(h).trim()});
-    }
+  if(!found){
+    flags.push('Could not find BRANCH_ALPHA / PARAMETER_VALUE columns in the OCTMS file — upload the current '
+      + 'non-complied export, not the initial-visit pivot report.');
+    return out;
   }
-  const paramRows = [];
+  const {rows, headerRowIdx, colIdx} = found;
+  const branchIdx = colIdx['branch_alpha'];
+  const paramIdx = colIdx['parameter_value'];
+
+  // Every row here already IS a currently-outstanding violation — no status
+  // column to filter by (see findFlatSheet/resolveOctmsRows above).
+  const violations = [];
   for(let r=headerRowIdx+1;r<rows.length;r++){
     const row = rows[r];
-    if(!row || row[0]===null || row[0]===undefined) continue;
-    const label = String(row[0]).trim();
-    if(!label || label.toLowerCase()==='grand total' || label==='(blank)') continue;
-    paramRows.push({code: label.toUpperCase(), row});
+    if(!row) continue;
+    const branch = row[branchIdx];
+    const code = row[paramIdx];
+    if(branch===null || branch===undefined || String(branch).trim()==='') continue;
+    if(code===null || code===undefined || String(code).trim()==='') continue;
+    violations.push({branch: String(branch).trim(), code: String(code).trim().toUpperCase()});
   }
 
   const unmappedDefault = document.getElementById('unmappedDefault').value;
+  const hitCodes = new Set(violations.map(v => v.code));
   let riskScore = 0; const unmapped = [];
-  paramRows.forEach(p => {
-    if(OCTMS_RISK[p.code]) riskScore += OCTMS_RISK[p.code][1];
-    else { riskScore += RATING_SCORE[unmappedDefault]; unmapped.push(p.code); }
+  hitCodes.forEach(code => {
+    if(OCTMS_RISK[code]) riskScore += OCTMS_RISK[code][1];
+    else { riskScore += RATING_SCORE[unmappedDefault]; unmapped.push(code); }
   });
   if(unmapped.length) flags.push('OCTMS parameters not in Annexure-III, scored as "'+unmappedDefault+'" by default: ' + unmapped.join(', '));
 
@@ -528,13 +561,7 @@ async function calcOctms(){
   const marksA = round2(Math.max(0, Math.min(1, compliancePctA/100)));
 
   const totalBranches = Number(document.getElementById('totalBranches').value) || 1;
-  const nonCompliedBranches = new Set();
-  branchCols.forEach(bc => {
-    for(const p of paramRows){
-      const v = p.row[bc.idx];
-      if(v !== null && v !== undefined && Number(v) > 0){ nonCompliedBranches.add(bc.name); break; }
-    }
-  });
+  const nonCompliedBranches = new Set(violations.map(v => v.branch));
   const compliancePctB = 100 - (nonCompliedBranches.size/totalBranches*100);
   const marksB = round2(Math.max(0, Math.min(1, compliancePctB/100)));
 
@@ -552,7 +579,7 @@ async function calcOctms(){
     ok:true, marksA, marksB, marksC,
     total: round2(marksA + marksB + (marksC||0)),
     detail: {
-      testedBranches: branchCols.map(b=>b.name), nonComplied:[...nonCompliedBranches],
+      hitParams: [...hitCodes], nonComplied: [...nonCompliedBranches],
       riskScore, compliancePctA, totalBranches, compliancePctB, atrTotal, atrClosed, closurePct
     }
   };
@@ -643,8 +670,8 @@ calcBtn.addEventListener('click', async () => {
       const d = octms.detail;
       document.getElementById('octmsDetail').innerHTML = `
         <table>
-          <tr><td>Tested branches</td><td>${d.testedBranches.length} (${d.testedBranches.join(', ')})</td></tr>
-          <tr><td>Non-complied branches</td><td>${d.nonComplied.length} / ${d.totalBranches}</td></tr>
+          <tr><td>Parameters hit</td><td>${d.hitParams.length} (${d.hitParams.join(', ')})</td></tr>
+          <tr><td>Non-complied branches</td><td>${d.nonComplied.length} / ${d.totalBranches} (${d.nonComplied.join(', ')})</td></tr>
           <tr><td>Risk score obtained</td><td>${d.riskScore} / ${OCTMS_TOTAL_RISK}</td></tr>
           <tr><td>Compliance % (A)</td><td>${d.compliancePctA.toFixed(2)}%</td></tr>
           <tr><td>Compliance % (B)</td><td>${d.compliancePctB.toFixed(2)}%</td></tr>
