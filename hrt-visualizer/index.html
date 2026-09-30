@@ -81,6 +81,13 @@ header.hero {
 .stages button.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 .stages canvas { width: 100%; height: auto; display: block; }
 .stages span { display: block; font-size: 11px; font-weight: 800; color: #6d5563; margin-top: 2px; }
+.projwrap { margin-top: 12px; background: var(--surface-2); border-radius: 16px; padding: 10px 12px; }
+.proj { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.proj th { font-size: 11px; color: var(--muted); text-align: left; font-weight: 700; padding: 4px 4px; }
+.proj td { padding: 6px 4px; border-top: 1px solid var(--border); white-space: nowrap; }
+.proj td:first-child { font-weight: 700; }
+.proj .up { color: #2f7d5b; font-size: 12px; font-weight: 800; }
+.proj .down { color: #c2527f; font-size: 12px; font-weight: 800; }
 .fullref { width: 100%; height: auto; display: block; border-radius: 14px; border: 1px solid var(--border); background: #fff; }
 .pairs { display: grid; grid-template-columns: 1fr; gap: 6px; align-items: center; }
 @media (min-width: 820px) { .pairs { grid-template-columns: 1fr 70px 1fr; } }
@@ -176,7 +183,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
         </div>
       </div>
       <div class="stages" id="stages" aria-label="Stages over time"></div>
-      <div class="chips" id="myNums" style="justify-content:center"></div>
+      <div id="myNums" class="projwrap"></div>
       <div class="timebar">
         <div class="monthlabel"><b id="monthText">Month 6</b><span class="tiny" id="monthWhen"></span></div>
         <input type="range" id="month" min="0" max="48" value="6" aria-label="Months on HRT" />
@@ -411,6 +418,32 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
   // Arrow heights on the starting picture (panel coords) for Bust, Underbust, Waist, Belly, Hips.
   const ARROWS = [["bust", 158], ["underbust", 186], ["waist", 236], ["belly", 270], ["hips", 305]];
 
+  // ---------- Projected measurements ----------
+  // Goal ranges from the user's plan. The projection moves from today's measurement toward the
+  // goal along each area's timing curve, as a range from a smaller to a larger response.
+  // It is an illustration of a path, not a prediction.
+  const GOALS = { bust: [39, 42], waist: [26, 28], belly: [30, 32], hips: [41, 43] };
+  const GOAL_DIR = { bust: 1, waist: -1, belly: -1, hips: 1 };
+  function curveFor(k, m) {
+    if (k === "bust") return eff("breast", m);
+    if (k === "hips") return Math.min(1, eff("fat", m) / 0.7);
+    if (k === "waist" || k === "belly") return smoothstep(0, 1, Math.min(1, m / 18)); // diet + training + fat redistribution
+    return 0;
+  }
+  function projection(k, m) {
+    const s = meas()[k];
+    if (!GOALS[k]) return { now: s, low: s, high: s, mid: s, goal: null };
+    const [gmin, gmax] = GOALS[k], dir = GOAL_DIR[k];
+    const far = dir > 0 ? gmax : gmin, near = dir > 0 ? gmin : gmax;
+    const opt = (far - s) * dir > 0 ? far : s;
+    const cons = (near - s) * dir > 0 ? s + (near - s) * 0.6 : s;
+    const c = curveFor(k, m);
+    const a = s + (cons - s) * c, b = s + (opt - s) * c;
+    const lo = Math.min(a, b), hi = Math.max(a, b);
+    return { now: s, low: lo, high: hi, mid: (lo + hi) / 2, goal: GOALS[k] };
+  }
+  const fmtIn = v => (Math.round(v * 2) / 2).toString();
+
   // How far each body area has changed at month m, following the guideline timings:
   // chest follows breast development, hips/bum/thighs follow fat redistribution.
   function progressAt(m) {
@@ -470,21 +503,25 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
     }
     const ctx = canvas.getContext("2d");
     ctx.putImageData(out, 0, 0);
-    // At the start, draw the user's own measurement arrows (width from the reshaped figure) and numbers.
-    if (key === "front" && alpha < 0.2) {
-      const M = meas();
+    // Measurement arrows on the figure, sized from the (warped) figure, labelled with the
+    // projected measurement for this month. Skipped on the small stage thumbnails.
+    if (key === "front" && canvas.id === "cvFront") {
       const span = { bust: [6, 7], underbust: [12, 13], waist: [14, 15], belly: [27, 28], hips: [16, 17] };
+      const rowY = {
+        bust: 158 + 30 * p.chest, underbust: 186 + 28 * p.chest,
+        waist: 236 + 8 * t, belly: 270 + 3 * t, hips: 305 - 4 * t,
+      };
       ctx.save();
-      ctx.globalAlpha = 1 - alpha * 5;
       ctx.font = "bold 10px -apple-system, system-ui, sans-serif";
       ctx.textBaseline = "middle";
-      for (const [k, y] of ARROWS) {
+      for (const [k] of ARROWS) {
+        const y = rowY[k];
         const [l, r] = span[k].map(i => q[i][0]);
         const x1 = l + 3, x2 = r - 3;
         ctx.strokeStyle = "#2a1a22"; ctx.fillStyle = "#2a1a22"; ctx.lineWidth = 1.4;
         ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
         for (const [x, dir] of [[x1, 1], [x2, -1]]) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 6 * dir, y - 3.5); ctx.lineTo(x + 6 * dir, y + 3.5); ctx.fill(); }
-        const label = `${M[k]}″`;
+        const label = `${fmtIn(projection(k, m).mid)}″`;
         const tw = ctx.measureText(label).width;
         const x = Math.min(211, w - tw - 4);
         ctx.strokeStyle = "rgba(42,26,34,.5)"; ctx.lineWidth = 0.8;
@@ -528,8 +565,15 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
     document.querySelectorAll("#stages button").forEach(bt => bt.classList.toggle("on", +bt.dataset.m === m));
     $("refTag").textContent = m === 0 ? "Starting shape" : `Month ${m} · ${stage}`;
     const M = meas();
-    $("myNums").innerHTML = [["Bust", M.bust], ["Underbust", M.underbust], ["Waist", M.waist], ["Belly", M.belly], ["Hips", M.hips]]
-      .map(([n, v]) => `<span class="chip" style="cursor:default">${n} ${v}″</span>`).join("");
+    const rows = [["bust", "Bust"], ["underbust", "Underbust"], ["waist", "Waist"], ["belly", "Belly"], ["hips", "Hips"]].map(([k, n]) => {
+      const pr = projection(k, m);
+      const d = pr.mid - pr.now;
+      const range = pr.high - pr.low < 0.25 ? `${fmtIn(pr.mid)}″` : `${fmtIn(pr.low)}–${fmtIn(pr.high)}″`;
+      const arrow = Math.abs(d) < 0.25 ? "" : d > 0 ? ` <span class="up">▲ ${fmtIn(Math.abs(d))}</span>` : ` <span class="down">▼ ${fmtIn(Math.abs(d))}</span>`;
+      return `<tr><td>${n}</td><td>${fmtIn(pr.now)}″</td><td><b>${range}</b>${arrow}</td><td>${pr.goal ? `${pr.goal[0]}–${pr.goal[1]}″` : "stays"}</td></tr>`;
+    }).join("");
+    $("myNums").innerHTML = `<table class="proj"><thead><tr><th></th><th>Now</th><th>${m === 0 ? "Start" : `Month ${m}`}</th><th>Goal</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="tiny" style="margin:6px 0 0">Projected range if HRT, training and nutrition go well: an illustration of the path toward your goals, not a promise. Underbust (ribcage) doesn't change.</p>`;
   }
 
   // ---------- Effects list ----------
