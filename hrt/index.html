@@ -73,11 +73,14 @@ header.hero {
 .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
 @media (min-width: 820px) { .grid { grid-template-columns: 1fr 1fr; } .grid > section:first-child { grid-column: 1 / -1; } }
 .refwrap { background: #fff; border-radius: 18px; overflow: hidden; border: 1px solid var(--border); }
-.refstage { position: relative; width: 100%; max-width: 640px; margin: 0 auto; aspect-ratio: 1 / 1.0635; overflow: hidden; }
-.refstage img { position: absolute; top: 0; width: 241.5%; margin-top: -18.01%; display: block; user-select: none; -webkit-user-drag: none; }
-.refstage .ref-a { left: -9.78%; }
-.refstage .ref-b { left: -134.3%; opacity: 0; transition: opacity .2s linear; }
+.refstage { position: relative; width: 100%; max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: 240fr 200fr; }
+.refstage canvas { width: 100%; height: auto; display: block; }
 .reftag { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); background: rgba(194, 82, 127, .92); color: #fff; font-weight: 800; font-size: 13px; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
+.stages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.stages button { border: 1px solid var(--border); background: #fff; border-radius: 12px; padding: 4px 2px 6px; cursor: pointer; }
+.stages button.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.stages canvas { width: 100%; height: auto; display: block; }
+.stages span { display: block; font-size: 11px; font-weight: 800; color: #6d5563; margin-top: 2px; }
 .fullref { width: 100%; height: auto; display: block; border-radius: 14px; border: 1px solid var(--border); background: #fff; }
 .pairs { display: grid; grid-template-columns: 1fr; gap: 6px; align-items: center; }
 @media (min-width: 820px) { .pairs { grid-template-columns: 1fr 70px 1fr; } }
@@ -118,7 +121,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
 .btn { white-space: nowrap; flex: none; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-.chip { min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-weight: 600; font-size: 13px; cursor: pointer; }
+.chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-weight: 600; font-size: 13px; cursor: pointer; }
 .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-2); }
 
 .effects { margin-top: 4px; }
@@ -164,14 +167,15 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
   <div class="grid">
     <section class="card">
       <h2>Your body, now and with HRT</h2>
-      <p class="sub">Move the slider or tap Play: the picture blends from the starting shape toward the HRT reference shape as the months go by.</p>
+      <p class="sub">Move the slider or tap Play: the body gradually reshapes from the starting figure toward the HRT reference figure. Tap a stage to jump to it.</p>
       <div class="refwrap">
-        <div class="refstage" id="refStage" role="img" aria-label="Body shape blending from starting shape to the HRT reference shape">
-          <img src="reference.png" alt="" class="ref-a" />
-          <img src="reference.png" alt="" class="ref-b" id="refB" />
-          <span class="reftag" id="refTag">Starting shape</span>
+        <div class="refstage" id="refStage" role="img" aria-label="Body shape morphing from the starting shape to the HRT reference shape">
+          <canvas id="cvFront" width="240" height="640"></canvas>
+          <canvas id="cvSide" width="200" height="640"></canvas>
+          <span class="reftag" id="refTag">Loading…</span>
         </div>
       </div>
+      <div class="stages" id="stages" aria-label="Stages over time"></div>
       <div class="chips" id="myNums" style="justify-content:center"></div>
       <div class="timebar">
         <div class="monthlabel"><b id="monthText">Month 6</b><span class="tiny" id="monthWhen"></span></div>
@@ -279,12 +283,153 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
     }
     return d;
   };
-  // Blend from the starting half of the reference picture to the "final" half.
+  // ---------- Morph between the reference picture's starting and final figures ----------
+  // Matching body landmarks (reference.png pixel coords). The final side view faces left,
+  // so it is mirrored to face right like the starting one.
+  const PANELS = {
+    front: {
+      w: 240, h: 640, a: { x0: 50, y0: 100 }, b: { x0: 780, y0: 100 },
+      whiteA: [[262, 230, 290, 430]],
+      whiteB: [[984, 245, 1020, 545], [972, 245, 1020, 320], [780, 436, 817, 545], [780, 368, 792, 396]],
+      A: [[168,112],[168,190],[152,200],[186,200],[108,238],[230,238],[124,272],[214,272],[92,335],[246,335],[82,450],[256,450],[140,292],[200,292],[138,340],[202,340],[128,405],[212,405],[170,440],[132,560],[163,560],[178,560],[210,560],[147,690],[193,690],[140,722],[200,722]],
+      B: [[897,115],[897,190],[884,200],[912,200],[838,238],[960,238],[848,272],[952,272],[825,335],[973,335],[822,455],[982,455],[853,288],[930,288],[868,345],[933,345],[845,400],[958,400],[900,440],[862,560],[893,560],[908,560],[942,560],[880,690],[920,690],[872,722],[928,722]],
+    },
+    side: {
+      w: 200, h: 640, a: { x0: 450, y0: 100 }, b: { x0: 1180, y0: 100, mirror: true },
+      whiteA: [[450, 450, 502, 612], [612, 160, 650, 400]],
+      whiteB: [[1180, 245, 1228, 400], [1180, 350, 1241, 376], [1342, 400, 1380, 420], [1350, 398, 1380, 468], [1327, 468, 1380, 522]],
+      A: [[555,112],[592,160],[580,190],[525,200],[570,208],[515,240],[590,250],[592,295],[505,280],[512,360],[500,410],[505,450],[590,340],[595,400],[570,485],[565,560],[530,560],[555,690],[520,720],[600,720]],
+      B: [[1275,112],[1242,165],[1255,190],[1300,205],[1262,210],[1320,240],[1250,250],[1235,295],[1325,285],[1310,360],[1335,415],[1312,465],[1250,345],[1255,400],[1272,470],[1265,560],[1300,560],[1275,690],[1300,720],[1232,720]],
+    },
+  };
+
+  const img = new Image();
+  img.src = "reference.png";
+  const prepared = {};
+
+  function prepPanel(key) {
+    const P = PANELS[key];
+    const mk = (src, white) => {
+      const c = document.createElement("canvas");
+      c.width = P.w; c.height = P.h;
+      const x = c.getContext("2d", { willReadFrequently: true });
+      x.fillStyle = "#fff";
+      x.fillRect(0, 0, P.w, P.h);
+      if (src.mirror) { x.translate(P.w, 0); x.scale(-1, 1); }
+      x.drawImage(img, src.x0, src.y0, P.w, P.h, 0, 0, P.w, P.h);
+      x.setTransform(1, 0, 0, 1, 0, 0);
+      // paint out the picture's text labels so they don't ghost mid-morph
+      for (const [x1, y1, x2, y2] of white) {
+        const lx = src.mirror ? P.w - (x2 - src.x0) : x1 - src.x0;
+        x.fillRect(lx, y1 - src.y0, x2 - x1, y2 - y1);
+      }
+      return x.getImageData(0, 0, P.w, P.h);
+    };
+    const toLocal = (pts, src) => pts.map(([x, y]) => [src.mirror ? P.w - (x - src.x0) : x - src.x0, y - src.y0]);
+    // frame anchors keep the edges still
+    const anchors = [];
+    for (const fx of [0, 0.5, 1]) for (const fy of [0, 0.25, 0.5, 0.75, 1]) if (fx !== 0.5 || fy === 0 || fy === 1) anchors.push([fx * (P.w - 1), fy * (P.h - 1)]);
+    prepared[key] = {
+      P,
+      A: mk(P.a, P.whiteA),
+      B: mk(P.b, P.whiteB),
+      ptsA: [...toLocal(P.A, P.a), ...anchors],
+      ptsB: [...toLocal(P.B, P.b), ...anchors],
+    };
+  }
+
+  // Affine moving-least-squares: map point v using handles q -> p.
+  function mls(v, q, p) {
+    let W = 0, qx = 0, qy = 0, px = 0, py = 0;
+    const w = new Array(q.length);
+    for (let i = 0; i < q.length; i++) {
+      const dx = q[i][0] - v[0], dy = q[i][1] - v[1];
+      const d2 = dx * dx + dy * dy;
+      if (d2 < 1e-6) return [p[i][0], p[i][1]];
+      w[i] = 1 / d2;
+      W += w[i]; qx += w[i] * q[i][0]; qy += w[i] * q[i][1]; px += w[i] * p[i][0]; py += w[i] * p[i][1];
+    }
+    qx /= W; qy /= W; px /= W; py /= W;
+    let a = 0, b = 0, d = 0, m00 = 0, m01 = 0, m10 = 0, m11 = 0;
+    for (let i = 0; i < q.length; i++) {
+      const hx = q[i][0] - qx, hy = q[i][1] - qy, gx = p[i][0] - px, gy = p[i][1] - py;
+      a += w[i] * hx * hx; b += w[i] * hx * hy; d += w[i] * hy * hy;
+      m00 += w[i] * hx * gx; m01 += w[i] * hx * gy; m10 += w[i] * hy * gx; m11 += w[i] * hy * gy;
+    }
+    const det = a * d - b * b || 1e-9;
+    const i00 = d / det, i01 = -b / det, i11 = a / det;
+    const r00 = i00 * m00 + i01 * m10, r01 = i00 * m01 + i01 * m11, r10 = i01 * m00 + i11 * m10, r11 = i01 * m01 + i11 * m11;
+    const ux = v[0] - qx, uy = v[1] - qy;
+    return [ux * r00 + uy * r10 + px, ux * r01 + uy * r11 + py];
+  }
+
+  function renderPanel(key, t, canvas) {
+    const S = prepared[key];
+    if (!S) return;
+    const { w, h } = S.P;
+    const q = S.ptsA.map((a, i) => [a[0] + (S.ptsB[i][0] - a[0]) * t, a[1] + (S.ptsB[i][1] - a[1]) * t]);
+    const step = 8, gw = Math.ceil(w / step) + 1, gh = Math.ceil(h / step) + 1;
+    const mapA = new Float32Array(gw * gh * 2), mapB = new Float32Array(gw * gh * 2);
+    for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+      const v = [Math.min(gx * step, w - 1), Math.min(gy * step, h - 1)];
+      const ma = t < 1 ? mls(v, q, S.ptsA) : v, mb = t > 0 ? mls(v, q, S.ptsB) : v;
+      const k = (gy * gw + gx) * 2;
+      mapA[k] = ma[0]; mapA[k + 1] = ma[1]; mapB[k] = mb[0]; mapB[k + 1] = mb[1];
+    }
+    const out = canvas.getContext("2d").createImageData(w, h);
+    const o = out.data, da = S.A.data, db = S.B.data;
+    const sample = (d, x, y, ch) => {
+      x = Math.max(0, Math.min(w - 1.001, x)); y = Math.max(0, Math.min(h - 1.001, y));
+      const x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0;
+      const i = (y0 * w + x0) * 4 + ch, r = w * 4;
+      return (d[i] * (1 - fx) + d[i + 4] * fx) * (1 - fy) + (d[i + r] * (1 - fx) + d[i + r + 4] * fx) * fy;
+    };
+    for (let y = 0; y < h; y++) {
+      const gy = y / step, gy0 = Math.min(gh - 2, gy | 0), ty = gy - gy0;
+      for (let x = 0; x < w; x++) {
+        const gx = x / step, gx0 = Math.min(gw - 2, gx | 0), tx = gx - gx0;
+        const k00 = (gy0 * gw + gx0) * 2, k10 = k00 + 2, k01 = k00 + gw * 2, k11 = k01 + 2;
+        const lerp2 = (m, c) => (m[k00 + c] * (1 - tx) + m[k10 + c] * tx) * (1 - ty) + (m[k01 + c] * (1 - tx) + m[k11 + c] * tx) * ty;
+        const ax = lerp2(mapA, 0), ay = lerp2(mapA, 1), bx = lerp2(mapB, 0), by = lerp2(mapB, 1);
+        const j = (y * w + x) * 4;
+        for (let c = 0; c < 3; c++) o[j + c] = sample(da, ax, ay, c) * (1 - t) + sample(db, bx, by, c) * t;
+        o[j + 3] = 255;
+      }
+    }
+    canvas.getContext("2d").putImageData(out, 0, 0);
+  }
+
+  let pendingT = null, raf = 0;
+  function morphTo(t) {
+    pendingT = t;
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      if (!img.complete || !prepared.front) return;
+      renderPanel("front", pendingT, $("cvFront"));
+      renderPanel("side", pendingT, $("cvSide"));
+    });
+  }
+  const STAGE_MONTHS = [[0, "Start"], [6, "6 mo"], [12, "1 yr"], [24, "2 yrs"], [36, "3 yrs"]];
+  const tFor = m => Math.min(1, ((eff("breast", m) + eff("fat", m)) / 2) / 0.8);
+  function buildStages() {
+    const wrap = $("stages");
+    wrap.innerHTML = STAGE_MONTHS.map(([m, l]) => `<button data-m="${m}"><canvas width="240" height="640"></canvas><span>${l}</span></button>`).join("");
+    wrap.querySelectorAll("button").forEach((btn, i) => {
+      renderPanel("front", tFor(STAGE_MONTHS[i][0]), btn.querySelector("canvas"));
+      btn.addEventListener("click", () => { $("month").value = STAGE_MONTHS[i][0]; render(); });
+    });
+  }
+  img.onload = () => { prepPanel("front"); prepPanel("side"); buildStages(); render(); };
+
+  const STAGES = [[0, "Starting shape"], [0.08, "Early changes"], [0.35, "Changes developing"], [0.7, "Well developed"], [0.98, "Reference final shape"]];
   function drawFigures(m) {
     const b = eff("breast", m), f = eff("fat", m);
-    const blend = Math.min(1, ((b + f) / 2) / 0.8);
-    $("refB").style.opacity = blend.toFixed(3);
-    $("refTag").textContent = m === 0 ? "Starting shape" : blend >= 0.98 ? `Month ${m} · reference shape` : `Month ${m} · ${Math.round(blend * 100)}% of the way`;
+    const t = Math.min(1, ((b + f) / 2) / 0.8);
+    morphTo(t);
+    const stage = STAGES.filter(([v]) => t >= v).pop()[1];
+    document.querySelectorAll("#stages button").forEach(bt => bt.classList.toggle("on", +bt.dataset.m === m));
+    $("refTag").textContent = m === 0 ? "Starting shape" : `Month ${m} · ${stage}`;
     const M = meas();
     $("myNums").innerHTML = [["Bust", M.bust], ["Underbust", M.underbust], ["Waist", M.waist], ["Belly", M.belly], ["Hips", M.hips]]
       .map(([n, v]) => `<span class="chip" style="cursor:default">${n} ${v}″</span>`).join("");
