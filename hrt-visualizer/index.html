@@ -291,8 +291,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
       w: 240, h: 640, a: { x0: 50, y0: 100 }, b: { x0: 780, y0: 100 },
       whiteA: [[262, 230, 290, 430]],
       whiteB: [[984, 245, 1020, 545], [972, 245, 1020, 320], [780, 436, 817, 545], [780, 368, 792, 396]],
-      A: [[168,112],[168,190],[152,200],[186,200],[108,238],[230,238],[124,272],[214,272],[92,335],[246,335],[82,450],[256,450],[140,292],[200,292],[138,340],[202,340],[128,405],[212,405],[170,440],[132,560],[163,560],[178,560],[210,560],[147,690],[193,690],[140,722],[200,722]],
-      B: [[897,115],[897,190],[884,200],[912,200],[838,238],[960,238],[848,272],[952,272],[825,335],[973,335],[822,455],[982,455],[853,288],[930,288],[868,345],[933,345],[845,400],[958,400],[900,440],[862,560],[893,560],[908,560],[942,560],[880,690],[920,690],[872,722],[928,722]],
+      A: [[168,112],[168,190],[152,200],[186,200],[108,238],[230,238],[124,272],[214,272],[92,335],[246,335],[82,450],[256,450],[140,292],[200,292],[138,340],[202,340],[128,405],[212,405],[170,440],[132,560],[163,560],[178,560],[210,560],[147,690],[193,690],[140,722],[200,722],[133,373],[207,373]],
+      B: [[897,115],[897,190],[884,200],[912,200],[838,238],[960,238],[848,272],[952,272],[825,335],[973,335],[822,455],[982,455],[853,288],[930,288],[868,345],[933,345],[845,400],[958,400],[900,440],[862,560],[893,560],[908,560],[942,560],[880,690],[920,690],[872,722],[928,722],[856,373],[946,373]],
     },
     side: {
       w: 200, h: 640, a: { x0: 450, y0: 100 }, b: { x0: 1180, y0: 100, mirror: true },
@@ -363,16 +363,39 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
     return [ux * r00 + uy * r10 + px, ux * r01 + uy * r11 + py];
   }
 
+  // The reference's starting figure is labelled Chest 38 / Bust 34 / Waist 34 / Belly 38 / Hips 40.
+  // Reshape it to the user's own measurements by scaling each level's width (front) or depth (side).
+  const REF = { bust: 38, underbust: 34, waist: 34, belly: 38, hips: 40, shoulders: 16 };
+  const LEVELS = {
+    front: { cx: 120, idx: { shoulders: [4, 5, 8, 9, 10, 11], bust: [6, 7, 12, 13], waist: [14, 15], belly: [27, 28], hips: [16, 17] } },
+    side: { cx: 100, idx: { bust: [5, 6, 7, 8], waist: [9], belly: [12], hips: [10, 13] } },
+  };
+  function userStart(key) {
+    const S = prepared[key], M = meas(), L = LEVELS[key];
+    const pts = S.ptsA.map(p => p.slice());
+    for (const [k, list] of Object.entries(L.idx)) {
+      const r = Math.max(0.8, Math.min(1.25, M[k] / REF[k]));
+      for (const i of list) pts[i][0] = L.cx + (pts[i][0] - L.cx) * r;
+    }
+    return pts;
+  }
+  const smoothstep = (a, b, x) => { const u = Math.max(0, Math.min(1, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+  // Arrow heights on the starting picture (panel coords) for Bust, Underbust, Waist, Belly, Hips.
+  const ARROWS = [["bust", 158], ["underbust", 186], ["waist", 236], ["belly", 270], ["hips", 305]];
+
   function renderPanel(key, t, canvas) {
     const S = prepared[key];
     if (!S) return;
     const { w, h } = S.P;
-    const q = S.ptsA.map((a, i) => [a[0] + (S.ptsB[i][0] - a[0]) * t, a[1] + (S.ptsB[i][1] - a[1]) * t]);
+    const U = userStart(key);
+    const q = U.map((a, i) => [a[0] + (S.ptsB[i][0] - a[0]) * t, a[1] + (S.ptsB[i][1] - a[1]) * t]);
+    // Show one crisp picture at a time; only cross-fade in a short window.
+    const alpha = smoothstep(0.42, 0.6, t);
     const step = 8, gw = Math.ceil(w / step) + 1, gh = Math.ceil(h / step) + 1;
     const mapA = new Float32Array(gw * gh * 2), mapB = new Float32Array(gw * gh * 2);
     for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
       const v = [Math.min(gx * step, w - 1), Math.min(gy * step, h - 1)];
-      const ma = t < 1 ? mls(v, q, S.ptsA) : v, mb = t > 0 ? mls(v, q, S.ptsB) : v;
+      const ma = alpha < 1 ? mls(v, q, S.ptsA) : v, mb = alpha > 0 ? mls(v, q, S.ptsB) : v;
       const k = (gy * gw + gx) * 2;
       mapA[k] = ma[0]; mapA[k + 1] = ma[1]; mapB[k] = mb[0]; mapB[k + 1] = mb[1];
     }
@@ -392,11 +415,32 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
         const lerp2 = (m, c) => (m[k00 + c] * (1 - tx) + m[k10 + c] * tx) * (1 - ty) + (m[k01 + c] * (1 - tx) + m[k11 + c] * tx) * ty;
         const ax = lerp2(mapA, 0), ay = lerp2(mapA, 1), bx = lerp2(mapB, 0), by = lerp2(mapB, 1);
         const j = (y * w + x) * 4;
-        for (let c = 0; c < 3; c++) o[j + c] = sample(da, ax, ay, c) * (1 - t) + sample(db, bx, by, c) * t;
+        if (alpha <= 0) { for (let c = 0; c < 3; c++) o[j + c] = sample(da, ax, ay, c); }
+        else if (alpha >= 1) { for (let c = 0; c < 3; c++) o[j + c] = sample(db, bx, by, c); }
+        else for (let c = 0; c < 3; c++) o[j + c] = sample(da, ax, ay, c) * (1 - alpha) + sample(db, bx, by, c) * alpha;
         o[j + 3] = 255;
       }
     }
-    canvas.getContext("2d").putImageData(out, 0, 0);
+    const ctx = canvas.getContext("2d");
+    ctx.putImageData(out, 0, 0);
+    // Put the user's own numbers next to the picture's measurement arrows.
+    if (key === "front" && alpha < 0.5) {
+      const M = meas();
+      ctx.save();
+      ctx.globalAlpha = 1 - alpha * 2;
+      ctx.font = "bold 10px -apple-system, system-ui, sans-serif";
+      ctx.textBaseline = "middle";
+      for (const [k, y] of ARROWS) {
+        const label = `${M[k]}″`;
+        const tw = ctx.measureText(label).width;
+        const x = Math.min(211, w - tw - 4);
+        ctx.fillStyle = "rgba(255,255,255,.92)";
+        ctx.fillRect(x - 2, y - 7, tw + 4, 14);
+        ctx.fillStyle = "#9c3862";
+        ctx.fillText(label, x, y);
+      }
+      ctx.restore();
+    }
   }
 
   let pendingT = null, raf = 0;
@@ -515,6 +559,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
     el.addEventListener("input", () => {
       saved = { ...saved, [k]: el.value || undefined };
       store.set(saved);
+      if (prepared.front && k !== "start") buildStages();
       render();
     });
   }
