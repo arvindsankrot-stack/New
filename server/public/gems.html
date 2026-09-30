@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEMS Marks</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#ffffff; --card-border:#e1e5ec;
+    --ink:#12151f; --ink-soft:#333844; --sub:#5b6472; --line:#e4e7ee;
+    --accent:#2953d6; --accent-ink:#ffffff; --accent-soft:rgba(41,83,214,0.08);
+    --good:#1a8f5e; --good-soft:rgba(26,143,94,0.12);
+    --warn:#b8791a; --warn-soft:rgba(184,121,26,0.12);
+    --bad:#c53434; --bad-soft:rgba(197,52,52,0.1);
+    --radius:16px; --radius-sm:10px;
+    --shadow:0 1px 2px rgba(18,21,31,0.04), 0 6px 20px -8px rgba(18,21,31,0.10);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0d0f14; --card:#151822; --card-border:#262b38;
+      --ink:#eef1f8; --ink-soft:#c7cddb; --sub:#9aa3b5; --line:#232838;
+      --accent:#5b8dff; --accent-ink:#0a0d14; --accent-soft:rgba(91,141,255,0.14);
+      --good:#3fcf8e; --good-soft:rgba(63,207,142,0.14);
+      --warn:#e2a83f; --warn-soft:rgba(226,168,63,0.14);
+      --bad:#ef6363; --bad-soft:rgba(239,99,99,0.14);
+      --shadow:0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -10px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d0f14; --card:#151822; --card-border:#262b38;
+    --ink:#eef1f8; --ink-soft:#c7cddb; --sub:#9aa3b5; --line:#232838;
+    --accent:#5b8dff; --accent-ink:#0a0d14; --accent-soft:rgba(91,141,255,0.14);
+    --good:#3fcf8e; --good-soft:rgba(63,207,142,0.14);
+    --warn:#e2a83f; --warn-soft:rgba(226,168,63,0.14);
+    --bad:#ef6363; --bad-soft:rgba(239,99,99,0.14);
+    --shadow:0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -10px rgba(0,0,0,0.5);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:18px 16px 40px; max-width:720px; margin-left:auto; margin-right:auto;
+  }
+  h1,h2{font-family:'Manrope',-apple-system,BlinkMacSystemFont,sans-serif;}
+
+  header.top{display:flex; align-items:center; gap:12px; margin-bottom:6px;}
+  .mark{
+    width:38px; height:38px; border-radius:10px; flex-shrink:0;
+    background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 55%,black));
+    display:flex; align-items:center; justify-content:center;
+    color:var(--accent-ink); font-family:'Manrope',sans-serif; font-weight:800; font-size:1rem;
+  }
+  h1{font-size:1.28rem; font-weight:800; margin:0; letter-spacing:-0.01em;}
+  .subtitle{color:var(--sub); font-size:0.84rem; margin:14px 0 20px; line-height:1.45;}
+
+  .card{
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius);
+    padding:18px; margin-bottom:14px; box-shadow:var(--shadow);
+  }
+  .card h2{
+    font-size:0.98rem; font-weight:700; margin:0 0 12px; display:flex; align-items:center; gap:10px;
+  }
+  .step-num{
+    width:22px; height:22px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:0.76rem; font-weight:800; flex-shrink:0;
+  }
+  .badge{
+    font-size:0.66rem; font-weight:700; padding:3px 9px; border-radius:999px;
+    background:var(--accent); color:var(--accent-ink); letter-spacing:0.01em;
+    margin-left:auto;
+  }
+
+  label{display:block; font-size:0.8rem; font-weight:600; color:var(--sub); margin:12px 0 5px;}
+  label:first-of-type{margin-top:0;}
+  input[type=number], input[type=text]{
+    width:100%; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--line);
+    background:var(--bg); color:var(--ink); font-size:0.95rem; font-variant-numeric:tabular-nums;
+  }
+  input:focus, select:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .note{font-size:0.76rem; color:var(--sub); margin-top:8px; line-height:1.5;}
+
+  .file-row{
+    display:flex; align-items:center; gap:10px; border:1.5px dashed var(--line);
+    border-radius:var(--radius-sm); padding:12px; background:var(--bg);
+  }
+  .file-row input[type=file]{flex:1; font-size:0.78rem; color:var(--ink-soft); min-width:0;}
+  .filename{font-size:0.78rem; color:var(--good); margin-top:6px; min-height:1.1em; font-weight:600;}
+  .filename.err{color:var(--bad);}
+  .filename.busy{color:var(--warn);}
+
+  .two-col-inputs{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+
+  .row{
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    padding:8px 0; border-bottom:1px dashed var(--line); font-size:0.89rem;
+  }
+  .row:last-of-type{border-bottom:none;}
+  .row .lbl{color:var(--sub);}
+  .row .val{font-weight:700; font-variant-numeric:tabular-nums;}
+  .total-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding-top:12px; margin-top:8px; border-top:1.5px solid var(--line);
+    font-size:1.05rem; font-weight:800; font-variant-numeric:tabular-nums;
+  }
+
+  select{
+    width:100%; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--line);
+    background:var(--bg); color:var(--ink); font-size:0.9rem;
+  }
+  button{
+    background:var(--accent); color:var(--accent-ink); border:none; border-radius:var(--radius-sm);
+    padding:14px 16px; font-size:0.96rem; font-weight:700; width:100%; cursor:pointer;
+    margin-top:10px; font-family:'Manrope',sans-serif;
+  }
+  button:active{opacity:0.85;}
+  button:disabled{opacity:0.55; cursor:default;}
+
+  .flag{
+    font-size:0.78rem; color:var(--warn); background:var(--warn-soft);
+    border:1px solid var(--warn); border-radius:var(--radius-sm); padding:9px 11px; margin-top:10px; line-height:1.4;
+  }
+  .flag.err{ color:var(--bad); background:var(--bad-soft); border-color:var(--bad); }
+
+  .pill-total{
+    text-align:center; padding:22px 18px; border-radius:var(--radius);
+    background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 60%,black));
+    color:var(--accent-ink); margin-bottom:14px; box-shadow:var(--shadow);
+  }
+  .pill-total .num{font-family:'Manrope',sans-serif; font-size:2.3rem; font-weight:800; line-height:1; font-variant-numeric:tabular-nums;}
+  .pill-total .lbl{font-size:0.8rem; opacity:0.9; margin-top:6px; font-weight:600;}
+
+  details{margin-top:10px;}
+  summary{font-size:0.82rem; color:var(--accent); cursor:pointer; font-weight:700;}
+  table{width:100%; border-collapse:collapse; font-size:0.78rem; margin-top:10px;}
+  th,td{text-align:left; padding:6px 6px; border-bottom:1px solid var(--line); vertical-align:top;}
+  td:first-child{color:var(--sub); white-space:nowrap; padding-right:12px;}
+
+  .hidden{display:none;}
+  .src-badge{
+    display:inline-block; font-size:0.66rem; font-weight:700; padding:2px 8px; border-radius:999px;
+    background:var(--line); color:var(--sub); margin-left:6px; vertical-align:middle;
+  }
+  footer.note{margin-top:18px; padding-top:14px; border-top:1px solid var(--line);}
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div class="mark">G</div>
+  <h1>GEMS Compliance Marks</h1>
+</header>
+<div class="subtitle">Region / Zone level — Off-Site (OCRMS) &amp; On-Site (OCTMS) scoring per BCC:COMPLIANCE:118/993 (FY 2026-27)</div>
+
+<div class="card">
+  <h2><span class="step-num">•</span> Region setup</h2>
+  <label>Total branches in the Region</label>
+  <input type="number" id="totalBranches" value="55" min="1">
+  <div class="note">Used as the denominator for Part B in both OCRMS and OCTMS.</div>
+</div>
+
+<div class="card">
+  <h2><span class="step-num">1</span> OCRMS <span class="badge">Off-site · max 3</span></h2>
+  <label>OCRMS report — Excel pivot table</label>
+  <div class="file-row">
+    <input type="file" id="ocrmsFile" accept=".xlsx,.xls">
+  </div>
+  <div class="filename" id="ocrmsFileName"></div>
+
+  <div class="two-col-inputs">
+    <div>
+      <label>Part C — initial non-complied instances</label>
+      <input type="number" id="ocrmsAtrTotal" placeholder="e.g. 236">
+    </div>
+    <div>
+      <label>Part C — closed &amp; verified (month end)</label>
+      <input type="number" id="ocrmsAtrClosed" placeholder="e.g. 200">
+    </div>
+  </div>
+
+  <div id="ocrmsResults" class="hidden">
+    <div class="row"><span class="lbl">Part A — Parameter Risk Score</span><span class="val" id="ocrmsA">—</span></div>
+    <div class="row"><span class="lbl">Part B — Non-complied Branches</span><span class="val" id="ocrmsB">—</span></div>
+    <div class="row"><span class="lbl">Part C — ATR Closure</span><span class="val" id="ocrmsC">—</span></div>
+    <div class="total-row"><span>OCRMS total (/3)</span><span id="ocrmsTotal">—</span></div>
+    <details>
+      <summary>Show working</summary>
+      <div id="ocrmsDetail"></div>
+    </details>
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="step-num">2</span> OCTMS <span class="badge">On-site · max 3</span></h2>
+  <label>OCTMS report — Excel pivot table</label>
+  <div class="file-row">
+    <input type="file" id="octmsFile" accept=".xlsx,.xls">
+  </div>
+  <div class="filename" id="octmsFileName"></div>
+
+  <label>Unmapped parameter codes — default risk rating</label>
+  <select id="unmappedDefault">
+    <option value="H" selected>High (3)</option>
+    <option value="M">Medium (2)</option>
+    <option value="L">Low (1)</option>
+  </select>
+  <div class="note">Codes found in the file that aren't in Annexure-III (e.g. A16, A17, A18, K21) are scored using this rating.</div>
+
+  <div class="two-col-inputs">
+    <div>
+      <label>Part C — initial non-complied instances</label>
+      <input type="number" id="octmsAtrTotal" placeholder="e.g. 31">
+    </div>
+    <div>
+      <label>Part C — closed &amp; verified (60th day)</label>
+      <input type="number" id="octmsAtrClosed" placeholder="e.g. 29">
+    </div>
+  </div>
+
+  <div id="octmsResults" class="hidden">
+    <div class="row"><span class="lbl">Part A — Parameter Risk Score</span><span class="val" id="octmsA">—</span></div>
+    <div class="row"><span class="lbl">Part B — Non-complied Branches</span><span class="val" id="octmsB">—</span></div>
+    <div class="row"><span class="lbl">Part C — ATR Closure</span><span class="val" id="octmsC">—</span></div>
+    <div class="total-row"><span>OCTMS total (/3)</span><span id="octmsTotal">—</span></div>
+    <details>
+      <summary>Show working</summary>
+      <div id="octmsDetail"></div>
+    </details>
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="step-num">3</span> Other KRA items</h2>
+  <label>Grade</label>
+  <select id="role">
+    <option value="rh">Regional Head / DRM</option>
+    <option value="zh">Zonal Head / DGM (CA) / DGM (BD)</option>
+  </select>
+  <div class="note" id="roleNote"></div>
+
+  <label>CERMO-Nxt compliance level (%) <span class="src-badge">max 1</span></label>
+  <input type="number" id="cermo" placeholder="e.g. 99.23" step="0.01">
+
+  <label>Regulatory penalty — marks per month, comma separated (1 / 0.5 / 0, avg. over quarter) <span class="src-badge">max 1</span></label>
+  <input type="text" id="penalty" placeholder="e.g. 1, 0.5, 1">
+
+  <label id="forumLabel">Compliance Forum Meeting held &amp; reported?</label>
+  <select id="forum">
+    <option value="1">Yes — full marks</option>
+    <option value="0">No — zero marks</option>
+  </select>
+
+  <div id="aeoaWrap">
+    <label>AEOA Scheme data submitted to RCO? <span class="src-badge">max 1</span></label>
+    <select id="aeoa">
+      <option value="1">Yes — full marks</option>
+      <option value="0">No — zero marks</option>
+    </select>
+  </div>
+</div>
+
+<div class="card" id="pairingCard">
+  <h2>Integration of parameters</h2>
+  <div class="row"><span class="lbl" id="ocrmsFormula">OCRMS = OCRMS + Cermo</span><span class="val" id="ocrmsBucket">—</span></div>
+  <div class="row"><span class="lbl" id="octmsFormula">OCTMS = OCTMS + Penalty + Compliance forum</span><span class="val" id="octmsBucket">—</span></div>
+</div>
+
+<div class="pill-total">
+  <div class="num" id="grandTotal">—</div>
+  <div class="lbl">Total GEMS Compliance marks (out of 10)</div>
+</div>
+
+<button id="calcBtn">Calculate marks</button>
+<div id="flags"></div>
+
+<footer class="note">
+  Risk weights use Annexure-I (OCRMS, 67 parameters) and Annexure-III (OCTMS, 126 parameters) from BCC:COMPLIANCE:118/993 dated 20.06.2026.
+  Part A treats a parameter as "hit" if any branch shows a non-compliance in it that month/quarter (matches the circular's fixed Total Risk Score denominators of 139 and 302).
+  Part B for OCRMS counts branches with a violation on a HIGH-risk parameter only; for OCTMS it counts branches with a violation on any parameter, per the circular text.
+</footer>
+
+<script>
+// ---------- Annexure I: OCRMS parameter risk map ----------
+const OCRMS_RISK = {
+'PARAMETER-001':['L',1],'PARAMETER-002':['L',1],'PARAMETER-003':['H',3],
+'PARAMETER-005':['M',2],'PARAMETER-006':['M',2],'PARAMETER-007':['M',2],
+'PARAMETER-008':['M',2],'PARAMETER-009':['M',2],'PARAMETER-010':['H',3],
+'PARAMETER-011':['H',3],'PARAMETER-012':['H',3],'PARAMETER-014':['H',3],
+'PARAMETER-016':['M',2],'PARAMETER-017':['H',3],'PARAMETER-018':['L',1],
+'PARAMETER-019':['M',2],'PARAMETER-020':['M',2],'PARAMETER-021':['M',2],
+'PARAMETER-022':['M',2],'PARAMETER-023':['M',2],'PARAMETER-024':['M',2],
+'PARAMETER-026':['L',1],'PARAMETER-027':['H',3],'PARAMETER-028':['H',3],
+'PARAMETER-029':['H',3],'PARAMETER-031':['M',2],'PARAMETER-033':['M',2],
+'PARAMETER-034':['M',2],'PARAMETER-035':['L',1],'PARAMETER-041':['M',2],
+'PARAMETER-042':['L',1],'PARAMETER-044':['L',1],'PARAMETER-047':['H',3],
+'PARAMETER-048':['H',3],'PARAMETER-051':['H',3],'PARAMETER-052':['H',3],
+'PARAMETER-053':['L',1],'PARAMETER-054':['M',2],'PARAMETER-055':['L',1],
+'PARAMETER-056':['H',3],'PARAMETER-057':['H',3],'PARAMETER-058':['H',3],
+'PARAMETER-060':['H',3],'PARAMETER-061':['M',2],'PARAMETER-062':['M',2],
+'PARAMETER-063':['H',3],'PARAMETER-064':['L',1],'PARAMETER-065':['H',3],
+'PARAMETER-066':['L',1],'PARAMETER-067':['M',2],'PARAMETER-068':['L',1],
+'PARAMETER-069':['H',3],'PARAMETER-070':['H',3],'PARAMETER-071':['M',2],
+'PARAMETER-072':['H',3],'PARAMETER-073':['H',3],'PARAMETER-074':['H',3],
+'PARAMETER-075':['L',1],'PARAMETER-076':['L',1],'PARAMETER-077':['L',1],
+'PARAMETER-078':['L',1],'PARAMETER-079':['M',2],'PARAMETER-080':['L',1],
+'PARAMETER-081':['L',1],'PARAMETER-082':['L',1],'PARAMETER-083':['H',3],
+'PARAMETER-084':['H',3]
+};
+const OCRMS_TOTAL_RISK = 139;
+
+// ---------- Annexure III: OCTMS parameter risk map ----------
+const OCTMS_RISK = {
+'A1':['H',3],'A3':['H',3],'A4':['H',3],'A5':['L',1],'A6':['H',3],'A7':['H',3],'A9':['H',3],
+'A10':['H',3],'A11':['H',3],'A12':['H',3],'A13':['H',3],'A14':['H',3],'A15':['H',3],
+'B2':['H',3],'B3':['H',3],'B4':['M',2],'B5':['H',3],'B6':['M',2],'B7':['H',3],
+'C2':['H',3],'C3':['H',3],'C4':['H',3],'C5':['M',2],'C6':['M',2],
+'D1':['H',3],'D2':['H',3],'E1':['H',3],'E2':['H',3],
+'F1':['H',3],'F2':['L',1],'F3':['H',3],'F4':['H',3],'F5':['M',2],'F6':['M',2],'F7':['H',3],'F8':['H',3],'F9':['H',3],
+'G1':['L',1],'G2':['M',2],'H1':['L',1],'I1':['H',3],'I2':['H',3],
+'K1':['H',3],'K2':['H',3],'K3':['H',3],'K4':['M',2],'K5':['M',2],'K6':['H',3],'K7':['H',3],'K8':['M',2],'K9':['H',3],
+'K14':['L',1],'K15':['H',3],'K16':['M',2],'K17':['L',1],'K18':['L',1],'K19':['L',1],'K20':['H',3],
+'L1':['H',3],'L2':['H',3],'L3':['L',1],
+'M1':['H',3],'M2':['M',2],'M3':['H',3],'M4':['L',1],'M5':['M',2],'M6':['H',3],'M7':['M',2],'M8':['M',2],'M9':['M',2],
+'M10':['H',3],'M12':['M',2],'M13':['L',1],'M14':['H',3],'M15':['H',3],'M17':['H',3],'M18':['H',3],'M19':['M',2],
+'M20':['M',2],'M21':['H',3],'M24':['M',2],'M25':['M',2],'M26':['H',3],'M27':['M',2],'M28':['H',3],'M29':['H',3],
+'M30':['H',3],'M31':['M',2],'M32':['M',2],'M33':['M',2],'M34':['M',2],'M35':['M',2],'M36':['L',1],'M37':['L',1],
+'M38':['H',3],'M39':['M',2],'M40':['H',3],'M41':['M',2],'M42':['H',3],'M43':['H',3],'M44':['M',2],'M45':['M',2],
+'M46':['L',1],'M47':['H',3],'M48':['L',1],'M49':['H',3],'M50':['M',2],'M51':['H',3],'M52':['L',1],'M53':['H',3],
+'M54':['M',2],'M55':['M',2],'M56':['M',2],'M57':['M',2],'M58':['M',2],'M59':['L',1],'M60':['H',3],'M61':['H',3],
+'M62':['H',3],'M63':['M',2],'M64':['L',1],'M65':['L',1],
+'N1':['H',3],'N2':['H',3],'N3':['H',3],'N4':['H',3]
+};
+const OCTMS_TOTAL_RISK = 302;
+const RATING_SCORE = {H:3,M:2,L:1};
+
+// ocrmsSource / octmsSource: {type:'excel', workbook} | null
+let ocrmsSource = null, octmsSource = null;
+const flags = [];
+
+function extOf(name){
+  const m = /\.([a-z0-9]+)$/i.exec(name || '');
+  return m ? m[1].toLowerCase() : '';
+}
+
+function readWorkbook(file, cb){
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      cb(wb, null);
+    }catch(err){ cb(null, err); }
+  };
+  reader.onerror = () => cb(null, new Error('Could not read file'));
+  reader.readAsArrayBuffer(file);
+}
+
+function setFileStatus(el, text, cls){
+  el.textContent = text;
+  el.className = 'filename' + (cls ? ' ' + cls : '');
+}
+
+function handleFileInput(file, nameEl, setSource){
+  const ext = extOf(file.name);
+  if(ext === 'xlsx' || ext === 'xls'){
+    setFileStatus(nameEl, 'Reading ' + file.name + '…', 'busy');
+    readWorkbook(file, (wb, err) => {
+      if(err){ setFileStatus(nameEl, 'Could not read ' + file.name, 'err'); return; }
+      setSource({type:'excel', workbook: wb});
+      setFileStatus(nameEl, 'Loaded: ' + file.name, '');
+    });
+  } else {
+    setFileStatus(nameEl, 'Unsupported file type: .' + ext + ' — upload the Excel pivot export (.xlsx or .xls).', 'err');
+  }
+}
+
+document.getElementById('ocrmsFile').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if(!f) return;
+  handleFileInput(f, document.getElementById('ocrmsFileName'), src => { ocrmsSource = src; });
+});
+
+document.getElementById('octmsFile').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if(!f) return;
+  handleFileInput(f, document.getElementById('octmsFileName'), src => { octmsSource = src; });
+});
+
+// Find a sheet whose first non-empty cell of a row matches target (case-insensitive)
+function findPivotSheet(wb, headerMatch){
+  for(const name of wb.SheetNames){
+    const ws = wb.Sheets[name];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+    for(let i=0;i<rows.length;i++){
+      const row = rows[i];
+      if(row && row[0] && String(row[0]).trim().toLowerCase() === headerMatch){
+        return {rows, headerRowIdx:i};
+      }
+    }
+  }
+  return null;
+}
+
+function round2(n){ return Math.round(n*100)/100; }
+
+// Resolve {rows, headerRowIdx} for OCRMS/OCTMS from the loaded workbook
+function resolveOcrmsRows(){
+  if(!ocrmsSource) return null;
+  return findPivotSheet(ocrmsSource.workbook, 'row labels');
+}
+
+function resolveOctmsRows(){
+  if(!octmsSource) return null;
+  return findPivotSheet(octmsSource.workbook, 'parameter');
+}
+
+async function calcOcrms(){
+  const out = {ok:false};
+  if(!ocrmsSource){ flags.push('OCRMS file not uploaded — Parts A &amp; B skipped.'); return out; }
+  const found = resolveOcrmsRows();
+  if(!found){ flags.push('Could not find an OCRMS pivot table (expected a "Row Labels" header row).'); return out; }
+  const {rows, headerRowIdx} = found;
+  const header = rows[headerRowIdx];
+  const paramCols = [];
+  for(let c=1;c<header.length;c++){
+    const h = header[c];
+    if(h && /^PARAMETER-\d+$/i.test(String(h).trim())){
+      paramCols.push({idx:c, code: String(h).trim().toUpperCase()});
+    }
+  }
+  const branchRows = [];
+  for(let r=headerRowIdx+1;r<rows.length;r++){
+    const row = rows[r];
+    if(!row || row[0]===null || row[0]===undefined) continue;
+    const label = String(row[0]).trim();
+    if(!label || label.toLowerCase()==='grand total') continue;
+    branchRows.push(row);
+  }
+
+  const hitParams = new Set();
+  paramCols.forEach(pc => {
+    for(const row of branchRows){
+      const v = row[pc.idx];
+      if(v !== null && v !== undefined && Number(v) > 0){ hitParams.add(pc.code); break; }
+    }
+  });
+
+  let riskScore = 0; const unmapped = [];
+  hitParams.forEach(code => {
+    if(OCRMS_RISK[code]) riskScore += OCRMS_RISK[code][1];
+    else unmapped.push(code);
+  });
+  if(unmapped.length) flags.push('OCRMS parameters not found in Annexure-I (excluded from Part A): ' + unmapped.join(', '));
+
+  const compliancePctA = 100 - (riskScore/OCRMS_TOTAL_RISK*100);
+  const marksA = round2(Math.max(0, Math.min(1, compliancePctA/100)));
+
+  const highRiskHit = [...hitParams].filter(c => OCRMS_RISK[c] && OCRMS_RISK[c][0]==='H');
+  const totalBranches = Number(document.getElementById('totalBranches').value) || 1;
+  const branchesHigh = new Set();
+  branchRows.forEach(row => {
+    for(const pc of paramCols){
+      if(highRiskHit.includes(pc.code)){
+        const v = row[pc.idx];
+        if(v !== null && v !== undefined && Number(v) > 0){ branchesHigh.add(String(row[0]).trim()); break; }
+      }
+    }
+  });
+  const compliancePctB = 100 - (branchesHigh.size/totalBranches*100);
+  const marksB = round2(Math.max(0, Math.min(1, compliancePctB/100)));
+
+  const atrTotal = Number(document.getElementById('ocrmsAtrTotal').value);
+  const atrClosed = Number(document.getElementById('ocrmsAtrClosed').value);
+  let marksC = null, closurePct = null;
+  if(atrTotal>0){
+    closurePct = (atrClosed/atrTotal*100);
+    marksC = round2(Math.max(0, Math.min(1, closurePct/100)));
+  } else {
+    flags.push('OCRMS Part C skipped — enter total non-complied instances and closed count.');
+  }
+
+  return {
+    ok:true, marksA, marksB, marksC,
+    total: round2(marksA + marksB + (marksC||0)),
+    detail: {
+      hitParams:[...hitParams], riskScore, compliancePctA,
+      branchesHigh:[...branchesHigh], totalBranches, compliancePctB,
+      atrTotal, atrClosed, closurePct
+    }
+  };
+}
+
+async function calcOctms(){
+  const out = {ok:false};
+  if(!octmsSource){ flags.push('OCTMS file not uploaded — Parts A &amp; B skipped.'); return out; }
+  const found = resolveOctmsRows();
+  if(!found){ flags.push('Could not find an OCTMS pivot table (expected a "Parameter" header row).'); return out; }
+  const {rows, headerRowIdx} = found;
+  const header = rows[headerRowIdx];
+  const branchCols = [];
+  for(let c=1;c<header.length;c++){
+    const h = header[c];
+    if(h && String(h).trim() && String(h).trim().toLowerCase()!=='grand total' && String(h).trim().toLowerCase()!=='(blank)'){
+      branchCols.push({idx:c, name:String(h).trim()});
+    }
+  }
+  const paramRows = [];
+  for(let r=headerRowIdx+1;r<rows.length;r++){
+    const row = rows[r];
+    if(!row || row[0]===null || row[0]===undefined) continue;
+    const label = String(row[0]).trim();
+    if(!label || label.toLowerCase()==='grand total' || label==='(blank)') continue;
+    paramRows.push({code: label.toUpperCase(), row});
+  }
+
+  const unmappedDefault = document.getElementById('unmappedDefault').value;
+  let riskScore = 0; const unmapped = [];
+  paramRows.forEach(p => {
+    if(OCTMS_RISK[p.code]) riskScore += OCTMS_RISK[p.code][1];
+    else { riskScore += RATING_SCORE[unmappedDefault]; unmapped.push(p.code); }
+  });
+  if(unmapped.length) flags.push('OCTMS parameters not in Annexure-III, scored as "'+unmappedDefault+'" by default: ' + unmapped.join(', '));
+
+  const compliancePctA = 100 - (riskScore/OCTMS_TOTAL_RISK*100);
+  const marksA = round2(Math.max(0, Math.min(1, compliancePctA/100)));
+
+  const totalBranches = Number(document.getElementById('totalBranches').value) || 1;
+  const nonCompliedBranches = new Set();
+  branchCols.forEach(bc => {
+    for(const p of paramRows){
+      const v = p.row[bc.idx];
+      if(v !== null && v !== undefined && Number(v) > 0){ nonCompliedBranches.add(bc.name); break; }
+    }
+  });
+  const compliancePctB = 100 - (nonCompliedBranches.size/totalBranches*100);
+  const marksB = round2(Math.max(0, Math.min(1, compliancePctB/100)));
+
+  const atrTotal = Number(document.getElementById('octmsAtrTotal').value);
+  const atrClosed = Number(document.getElementById('octmsAtrClosed').value);
+  let marksC = null, closurePct = null;
+  if(atrTotal>0){
+    closurePct = (atrClosed/atrTotal*100);
+    marksC = round2(Math.max(0, Math.min(1, closurePct/100)));
+  } else {
+    flags.push('OCTMS Part C skipped — enter total non-complied instances and closed count.');
+  }
+
+  return {
+    ok:true, marksA, marksB, marksC,
+    total: round2(marksA + marksB + (marksC||0)),
+    detail: {
+      testedBranches: branchCols.map(b=>b.name), nonComplied:[...nonCompliedBranches],
+      riskScore, compliancePctA, totalBranches, compliancePctB, atrTotal, atrClosed, closurePct
+    }
+  };
+}
+
+// Grade-specific caps, per the circular's role split and the GM-Compliance
+// integration note (ZH/DGM: OCRMS+Cermo, OCTMS+Penalty+Forum(2);
+// RH/DRM: OCRMS+Cermo+AEOA, OCTMS+Penalty+Forum(1))
+const ROLE_CAPS = {
+  rh: {forumMax: 1, aeoaApplies: true},
+  zh: {forumMax: 2, aeoaApplies: false}
+};
+
+function applyRoleUI(){
+  const role = document.getElementById('role').value;
+  const caps = ROLE_CAPS[role];
+  document.getElementById('aeoaWrap').style.display = caps.aeoaApplies ? '' : 'none';
+  document.getElementById('forumLabel').innerHTML = 'Compliance Forum Meeting held &amp; reported? <span class="src-badge">max ' + caps.forumMax + '</span>';
+  document.getElementById('roleNote').textContent = caps.aeoaApplies
+    ? 'OCRMS bucket = OCRMS + Cermo + AEOA (max 5). OCTMS bucket = OCTMS + Penalty + Compliance Forum (max 5).'
+    : 'OCRMS bucket = OCRMS + Cermo (max 4). OCTMS bucket = OCTMS + Penalty + Compliance Forum (max 6).';
+  document.getElementById('ocrmsFormula').textContent = caps.aeoaApplies ? 'OCRMS = OCRMS + Cermo + AEOA' : 'OCRMS = OCRMS + Cermo';
+  document.getElementById('octmsFormula').textContent = 'OCTMS = OCTMS + Penalty + Compliance forum';
+}
+document.getElementById('role').addEventListener('change', applyRoleUI);
+applyRoleUI();
+
+function calcOther(){
+  const role = document.getElementById('role').value;
+  const caps = ROLE_CAPS[role];
+
+  const cermoPct = Number(document.getElementById('cermo').value);
+  const cermoMarks = cermoPct>0 ? round2(Math.min(1, cermoPct/100)) : null;
+
+  const penaltyStr = document.getElementById('penalty').value.trim();
+  let penaltyMarks = null;
+  if(penaltyStr){
+    const vals = penaltyStr.split(',').map(s=>parseFloat(s.trim())).filter(v=>!isNaN(v));
+    if(vals.length){
+      penaltyMarks = round2(vals.reduce((a,b)=>a+b,0)/vals.length);
+    }
+  }
+
+  const forumYesNo = Number(document.getElementById('forum').value);
+  const forumMarks = round2(forumYesNo * caps.forumMax);
+  const aeoaMarks = caps.aeoaApplies ? Number(document.getElementById('aeoa').value) : 0;
+
+  return {role, caps, cermoMarks, penaltyMarks, forumMarks, aeoaMarks};
+}
+
+const calcBtn = document.getElementById('calcBtn');
+
+calcBtn.addEventListener('click', async () => {
+  flags.length = 0;
+  document.getElementById('flags').innerHTML = '';
+  calcBtn.disabled = true;
+  const origLabel = calcBtn.textContent;
+  calcBtn.textContent = 'Reading files…';
+
+  try{
+    const [ocrms, octms] = await Promise.all([calcOcrms(), calcOctms()]);
+    const other = calcOther();
+
+    if(ocrms.ok){
+      document.getElementById('ocrmsResults').classList.remove('hidden');
+      document.getElementById('ocrmsA').textContent = ocrms.marksA.toFixed(2);
+      document.getElementById('ocrmsB').textContent = ocrms.marksB.toFixed(2);
+      document.getElementById('ocrmsC').textContent = ocrms.marksC!==null ? ocrms.marksC.toFixed(2) : 'pending';
+      document.getElementById('ocrmsTotal').textContent = ocrms.total.toFixed(2) + ' / 3';
+      const d = ocrms.detail;
+      document.getElementById('ocrmsDetail').innerHTML = `
+        <table>
+          <tr><td>Parameters hit</td><td>${d.hitParams.length} (${d.hitParams.join(', ')})</td></tr>
+          <tr><td>Risk score obtained</td><td>${d.riskScore} / ${OCRMS_TOTAL_RISK}</td></tr>
+          <tr><td>Compliance % (A)</td><td>${d.compliancePctA.toFixed(2)}%</td></tr>
+          <tr><td>Branches with HIGH-risk violation</td><td>${d.branchesHigh.length} / ${d.totalBranches}</td></tr>
+          <tr><td>Compliance % (B)</td><td>${d.compliancePctB.toFixed(2)}%</td></tr>
+          ${d.closurePct!==null ? `<tr><td>ATR closure %</td><td>${d.closurePct.toFixed(2)}%</td></tr>` : ''}
+        </table>`;
+    }
+
+    if(octms.ok){
+      document.getElementById('octmsResults').classList.remove('hidden');
+      document.getElementById('octmsA').textContent = octms.marksA.toFixed(2);
+      document.getElementById('octmsB').textContent = octms.marksB.toFixed(2);
+      document.getElementById('octmsC').textContent = octms.marksC!==null ? octms.marksC.toFixed(2) : 'pending';
+      document.getElementById('octmsTotal').textContent = octms.total.toFixed(2) + ' / 3';
+      const d = octms.detail;
+      document.getElementById('octmsDetail').innerHTML = `
+        <table>
+          <tr><td>Tested branches</td><td>${d.testedBranches.length} (${d.testedBranches.join(', ')})</td></tr>
+          <tr><td>Non-complied branches</td><td>${d.nonComplied.length} / ${d.totalBranches}</td></tr>
+          <tr><td>Risk score obtained</td><td>${d.riskScore} / ${OCTMS_TOTAL_RISK}</td></tr>
+          <tr><td>Compliance % (A)</td><td>${d.compliancePctA.toFixed(2)}%</td></tr>
+          <tr><td>Compliance % (B)</td><td>${d.compliancePctB.toFixed(2)}%</td></tr>
+          ${d.closurePct!==null ? `<tr><td>ATR closure %</td><td>${d.closurePct.toFixed(2)}%</td></tr>` : ''}
+        </table>`;
+    }
+
+    const ocrmsMarks = ocrms.ok ? ocrms.total : 0;
+    const octmsMarks = octms.ok ? octms.total : 0;
+    const cermoM = other.cermoMarks!==null ? other.cermoMarks : 0;
+    const penaltyM = other.penaltyMarks!==null ? other.penaltyMarks : 0;
+
+    const ocrmsBucket = round2(ocrmsMarks + cermoM + other.aeoaMarks);
+    const octmsBucket = round2(octmsMarks + penaltyM + other.forumMarks);
+    const ocrmsBucketMax = other.caps.aeoaApplies ? 5 : 4;
+    const octmsBucketMax = other.caps.aeoaApplies ? 5 : 6;
+
+    const ocrmsParts = [ocrmsMarks.toFixed(2)];
+    if(other.cermoMarks!==null) ocrmsParts.push(cermoM.toFixed(2)); else ocrmsParts.push('0.00(no Cermo %)');
+    if(other.caps.aeoaApplies) ocrmsParts.push(other.aeoaMarks.toFixed(2));
+    document.getElementById('ocrmsBucket').textContent = ocrmsParts.join(' + ') + ' = ' + ocrmsBucket.toFixed(2) + ' / ' + ocrmsBucketMax;
+
+    const octmsParts = [octmsMarks.toFixed(2)];
+    if(other.penaltyMarks!==null) octmsParts.push(penaltyM.toFixed(2)); else octmsParts.push('0.00(no penalty entered)');
+    octmsParts.push(other.forumMarks.toFixed(2));
+    document.getElementById('octmsBucket').textContent = octmsParts.join(' + ') + ' = ' + octmsBucket.toFixed(2) + ' / ' + octmsBucketMax;
+
+    const grand = round2(ocrmsBucket + octmsBucket);
+    document.getElementById('grandTotal').textContent = grand.toFixed(2) + ' / 10';
+    document.getElementById('flags').innerHTML = flags.map(f => `<div class="flag">${f}</div>`).join('');
+  } finally {
+    calcBtn.disabled = false;
+    calcBtn.textContent = origLabel;
+  }
+});
+</script>
+</body>
+</html>
