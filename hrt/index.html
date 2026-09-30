@@ -288,7 +288,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
   // so it is mirrored to face right like the starting one.
   const PANELS = {
     front: {
-      w: 240, h: 640, a: { x0: 50, y0: 100 }, b: { x0: 780, y0: 100 },
+      w: 240, h: 640, a: { x0: 50, y0: 100, clean: [95, 245, 262, 418] }, b: { x0: 780, y0: 100, clean: [836, 328, 970, 420] },
       whiteA: [[262, 230, 290, 430]],
       whiteB: [[984, 245, 1020, 545], [972, 245, 1020, 320], [780, 436, 817, 545], [780, 368, 792, 396]],
       A: [[168,112],[168,190],[152,200],[186,200],[108,238],[230,238],[124,272],[214,272],[92,335],[246,335],[82,450],[256,450],[140,292],[200,292],[138,340],[202,340],[128,405],[212,405],[170,440],[132,560],[163,560],[178,560],[210,560],[147,690],[193,690],[140,722],[200,722],[133,373],[207,373]],
@@ -307,6 +307,32 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
   img.src = "reference.png";
   const prepared = {};
 
+  // Remove the picture's measurement arrows / tape rings drawn across the body: thin dark
+  // horizontal strokes are replaced by interpolating the skin just above and below them.
+  function eraseLines(data, box, src) {
+    const { width: w, data: d } = data;
+    const [x1, y1, x2, y2] = [box[0] - src.x0, box[1] - src.y0, box[2] - src.x0, box[3] - src.y0];
+    const lum = i => 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2];
+    for (let pass = 0; pass < 2; pass++) {
+      for (let x = x1; x < x2; x++) {
+        for (let y = y1; y < y2; y++) {
+          const i = (y * w + x) * 4;
+          if (lum(i) > 110) continue;
+          let up = -1, dn = -1;
+          for (let k = 1; k <= 8; k++) if (up < 0 && lum(((y - k) * w + x) * 4) > 150) up = y - k;
+          for (let k = 1; k <= 8; k++) if (dn < 0 && lum(((y + k) * w + x) * 4) > 150) dn = y + k;
+          if (up < 0 || dn < 0) continue;
+          const iu = (up * w + x) * 4, id = (dn * w + x) * 4;
+          for (let yy = up + 1; yy < dn; yy++) {
+            const f = (yy - up) / (dn - up), j = (yy * w + x) * 4;
+            for (let c = 0; c < 3; c++) d[j + c] = d[iu + c] * (1 - f) + d[id + c] * f;
+          }
+          y = dn;
+        }
+      }
+    }
+  }
+
   function prepPanel(key) {
     const P = PANELS[key];
     const mk = (src, white) => {
@@ -323,7 +349,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
         const lx = src.mirror ? P.w - (x2 - src.x0) : x1 - src.x0;
         x.fillRect(lx, y1 - src.y0, x2 - x1, y2 - y1);
       }
-      return x.getImageData(0, 0, P.w, P.h);
+      const data = x.getImageData(0, 0, P.w, P.h);
+      if (src.clean) eraseLines(data, src.clean.map(v => v), src);
+      return data;
     };
     const toLocal = (pts, src) => pts.map(([x, y]) => [src.mirror ? P.w - (x - src.x0) : x - src.x0, y - src.y0]);
     // frame anchors keep the edges still
@@ -383,19 +411,37 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
   // Arrow heights on the starting picture (panel coords) for Bust, Underbust, Waist, Belly, Hips.
   const ARROWS = [["bust", 158], ["underbust", 186], ["waist", 236], ["belly", 270], ["hips", 305]];
 
-  function renderPanel(key, t, canvas) {
+  // How far each body area has changed at month m, following the guideline timings:
+  // chest follows breast development, hips/bum/thighs follow fat redistribution.
+  function progressAt(m) {
+    const chest = eff("breast", m);
+    const hips = Math.min(1, eff("fat", m) / 0.7);
+    const overall = (chest + hips) / 2;
+    return { chest, hips, overall, head: smoothstep(0.3, 0.85, overall) };
+  }
+  // Blend amount of the "final" picture for each row of the panel (rows are aligned by the warp).
+  function rowAlpha(y, p) {
+    const keys = [[0, p.head], [118, p.head], [140, p.chest], [222, p.chest], [252, p.hips], [640, p.hips]];
+    for (let i = 1; i < keys.length; i++) if (y <= keys[i][0]) {
+      const [y0, a0] = keys[i - 1], [y1, a1] = keys[i];
+      return a0 + (a1 - a0) * ((y - y0) / (y1 - y0 || 1));
+    }
+    return p.hips;
+  }
+
+  function renderPanel(key, m, canvas) {
     const S = prepared[key];
     if (!S) return;
     const { w, h } = S.P;
     const U = userStart(key);
+    const p = progressAt(m), t = p.overall;
     const q = U.map((a, i) => [a[0] + (S.ptsB[i][0] - a[0]) * t, a[1] + (S.ptsB[i][1] - a[1]) * t]);
-    // Show one crisp picture at a time; only cross-fade in a short window.
-    const alpha = smoothstep(0.42, 0.6, t);
+    const alpha = t; // used only for the number labels below
     const step = 8, gw = Math.ceil(w / step) + 1, gh = Math.ceil(h / step) + 1;
     const mapA = new Float32Array(gw * gh * 2), mapB = new Float32Array(gw * gh * 2);
     for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
       const v = [Math.min(gx * step, w - 1), Math.min(gy * step, h - 1)];
-      const ma = alpha < 1 ? mls(v, q, S.ptsA) : v, mb = alpha > 0 ? mls(v, q, S.ptsB) : v;
+      const ma = t < 1 ? mls(v, q, S.ptsA) : v, mb = t > 0 ? mls(v, q, S.ptsB) : v;
       const k = (gy * gw + gx) * 2;
       mapA[k] = ma[0]; mapA[k + 1] = ma[1]; mapB[k] = mb[0]; mapB[k + 1] = mb[1];
     }
@@ -408,6 +454,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
       return (d[i] * (1 - fx) + d[i + 4] * fx) * (1 - fy) + (d[i + r] * (1 - fx) + d[i + r + 4] * fx) * fy;
     };
     for (let y = 0; y < h; y++) {
+      const alpha = rowAlpha(y, p);
       const gy = y / step, gy0 = Math.min(gh - 2, gy | 0), ty = gy - gy0;
       for (let x = 0; x < w; x++) {
         const gx = x / step, gx0 = Math.min(gw - 2, gx | 0), tx = gx - gx0;
@@ -423,17 +470,25 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
     }
     const ctx = canvas.getContext("2d");
     ctx.putImageData(out, 0, 0);
-    // Put the user's own numbers next to the picture's measurement arrows.
-    if (key === "front" && alpha < 0.5) {
+    // At the start, draw the user's own measurement arrows (width from the reshaped figure) and numbers.
+    if (key === "front" && alpha < 0.2) {
       const M = meas();
+      const span = { bust: [6, 7], underbust: [12, 13], waist: [14, 15], belly: [27, 28], hips: [16, 17] };
       ctx.save();
-      ctx.globalAlpha = 1 - alpha * 2;
+      ctx.globalAlpha = 1 - alpha * 5;
       ctx.font = "bold 10px -apple-system, system-ui, sans-serif";
       ctx.textBaseline = "middle";
       for (const [k, y] of ARROWS) {
+        const [l, r] = span[k].map(i => q[i][0]);
+        const x1 = l + 3, x2 = r - 3;
+        ctx.strokeStyle = "#2a1a22"; ctx.fillStyle = "#2a1a22"; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+        for (const [x, dir] of [[x1, 1], [x2, -1]]) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 6 * dir, y - 3.5); ctx.lineTo(x + 6 * dir, y + 3.5); ctx.fill(); }
         const label = `${M[k]}″`;
         const tw = ctx.measureText(label).width;
         const x = Math.min(211, w - tw - 4);
+        ctx.strokeStyle = "rgba(42,26,34,.5)"; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(x2 + 2, y); ctx.lineTo(x - 3, y); ctx.stroke();
         ctx.fillStyle = "rgba(255,255,255,.92)";
         ctx.fillRect(x - 2, y - 7, tw + 4, 14);
         ctx.fillStyle = "#9c3862";
@@ -444,8 +499,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
   }
 
   let pendingT = null, raf = 0;
-  function morphTo(t) {
-    pendingT = t;
+  function morphTo(m) {
+    pendingT = m;
     if (raf) return;
     raf = requestAnimationFrame(() => {
       raf = 0;
@@ -455,12 +510,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
     });
   }
   const STAGE_MONTHS = [[0, "Start"], [6, "6 mo"], [12, "1 yr"], [24, "2 yrs"], [36, "3 yrs"]];
-  const tFor = m => Math.min(1, ((eff("breast", m) + eff("fat", m)) / 2) / 0.8);
   function buildStages() {
     const wrap = $("stages");
     wrap.innerHTML = STAGE_MONTHS.map(([m, l]) => `<button data-m="${m}"><canvas width="240" height="640"></canvas><span>${l}</span></button>`).join("");
     wrap.querySelectorAll("button").forEach((btn, i) => {
-      renderPanel("front", tFor(STAGE_MONTHS[i][0]), btn.querySelector("canvas"));
+      renderPanel("front", STAGE_MONTHS[i][0], btn.querySelector("canvas"));
       btn.addEventListener("click", () => { $("month").value = STAGE_MONTHS[i][0]; render(); });
     });
   }
@@ -468,9 +522,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
 
   const STAGES = [[0, "Starting shape"], [0.08, "Early changes"], [0.35, "Changes developing"], [0.7, "Well developed"], [0.98, "Reference final shape"]];
   function drawFigures(m) {
-    const b = eff("breast", m), f = eff("fat", m);
-    const t = Math.min(1, ((b + f) / 2) / 0.8);
-    morphTo(t);
+    const t = progressAt(m).overall;
+    morphTo(m);
     const stage = STAGES.filter(([v]) => t >= v).pop()[1];
     document.querySelectorAll("#stages button").forEach(bt => bt.classList.toggle("on", +bt.dataset.m === m));
     $("refTag").textContent = m === 0 ? "Starting shape" : `Month ${m} · ${stage}`;
