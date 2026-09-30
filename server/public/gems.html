@@ -204,13 +204,24 @@
     PARAMETER_VALUE columns — preferred, not the full initial visit report) or the older "Parameter" pivot
     table you used to send. The file is checked automatically and read either way.</div>
 
+  <label>New parameter codes (not in the original circular) — set risk rating</label>
+  <div class="two-col-inputs" id="newCodeRatings">
+    <div><label>A16</label><select class="newCodeRating" data-code="A16"><option value="H" selected>High (3)</option><option value="M">Medium (2)</option><option value="L">Low (1)</option></select></div>
+    <div><label>A17</label><select class="newCodeRating" data-code="A17"><option value="H" selected>High (3)</option><option value="M">Medium (2)</option><option value="L">Low (1)</option></select></div>
+    <div><label>A18</label><select class="newCodeRating" data-code="A18"><option value="H" selected>High (3)</option><option value="M">Medium (2)</option><option value="L">Low (1)</option></select></div>
+    <div><label>K21</label><select class="newCodeRating" data-code="K21"><option value="H" selected>High (3)</option><option value="M">Medium (2)</option><option value="L">Low (1)</option></select></div>
+  </div>
+  <div class="note">A16, A17, A18 (KYC, Ref RBI/DOR/2025-26/170) and K21 (Govt CASA balance confirmation) were
+    added after the original circular — default High, change here if a different rating applies. The total
+    risk denominator adjusts automatically.</div>
+
   <label>Unmapped parameter codes — default risk rating</label>
   <select id="unmappedDefault">
     <option value="H" selected>High (3)</option>
     <option value="M">Medium (2)</option>
     <option value="L">Low (1)</option>
   </select>
-  <div class="note">Codes found in the file that aren't in Annexure-III (e.g. A16, A17, A18, K21) are scored using this rating.</div>
+  <div class="note">Any other code found in the file that isn't in Annexure-III is scored using this rating.</div>
 
   <div class="two-col-inputs">
     <div>
@@ -337,8 +348,28 @@ const OCTMS_RISK = {
 'M62':['H',3],'M63':['M',2],'M64':['L',1],'M65':['L',1],
 'N1':['H',3],'N2':['H',3],'N3':['H',3],'N4':['H',3]
 };
-const OCTMS_TOTAL_RISK = 314; // 302 + A16/A17/A18/K21 added later (High, weight 3 each)
+const OCTMS_BASE_TOTAL_RISK = 302; // fixed, per BCC:COMPLIANCE:118/993 — excludes the 4 codes below
+const NEW_OCTMS_CODES = ['A16', 'A17', 'A18', 'K21']; // added after the original circular
 const RATING_SCORE = {H:3,M:2,L:1};
+
+// Live rating for a new code, read from its dropdown (defaults to High).
+function newCodeRating(code){
+  const sel = document.querySelector('.newCodeRating[data-code="'+code+'"]');
+  return sel ? sel.value : 'H';
+}
+function newCodeWeight(code){ return RATING_SCORE[newCodeRating(code)]; }
+
+// Weight for ANY OCTMS code — new codes read their live dropdown rating,
+// everything else uses the fixed Annexure-III map.
+function octmsWeightFor(code){
+  if(NEW_OCTMS_CODES.includes(code)) return newCodeWeight(code);
+  return OCTMS_RISK[code] ? OCTMS_RISK[code][1] : null;
+}
+
+// Total risk denominator changes with the 4 new codes' selected ratings.
+function currentOctmsTotalRisk(){
+  return OCTMS_BASE_TOTAL_RISK + NEW_OCTMS_CODES.reduce((sum, c) => sum + newCodeWeight(c), 0);
+}
 
 // ocrmsSource / octmsSource: {type:'excel', workbook} | null
 let ocrmsSource = null, octmsSource = null;
@@ -590,12 +621,14 @@ async function calcOctms(){
   const hitCodes = new Set(violations.map(v => v.code));
   let riskScore = 0; const unmapped = [];
   hitCodes.forEach(code => {
-    if(OCTMS_RISK[code]) riskScore += OCTMS_RISK[code][1];
+    const w = octmsWeightFor(code);
+    if(w !== null) riskScore += w;
     else { riskScore += RATING_SCORE[unmappedDefault]; unmapped.push(code); }
   });
   if(unmapped.length) flags.push('OCTMS parameters not in Annexure-III, scored as "'+unmappedDefault+'" by default: ' + unmapped.join(', '));
 
-  const compliancePctA = 100 - (riskScore/OCTMS_TOTAL_RISK*100);
+  const octmsTotalRisk = currentOctmsTotalRisk();
+  const compliancePctA = 100 - (riskScore/octmsTotalRisk*100);
   const marksA = round2(Math.max(0, Math.min(1, compliancePctA/100)));
 
   const totalBranches = Number(document.getElementById('totalBranches').value) || 1;
@@ -618,7 +651,7 @@ async function calcOctms(){
     total: round2(marksA + marksB + (marksC||0)),
     detail: {
       hitParams: [...hitCodes], nonComplied: [...nonCompliedBranches],
-      riskScore, compliancePctA, totalBranches, compliancePctB, atrTotal, atrClosed, closurePct
+      riskScore, octmsTotalRisk, compliancePctA, totalBranches, compliancePctB, atrTotal, atrClosed, closurePct
     }
   };
 }
@@ -710,7 +743,7 @@ calcBtn.addEventListener('click', async () => {
         <table>
           <tr><td>Parameters hit</td><td>${d.hitParams.length} (${d.hitParams.join(', ')})</td></tr>
           <tr><td>Non-complied branches</td><td>${d.nonComplied.length} / ${d.totalBranches} (${d.nonComplied.join(', ')})</td></tr>
-          <tr><td>Risk score obtained</td><td>${d.riskScore} / ${OCTMS_TOTAL_RISK}</td></tr>
+          <tr><td>Risk score obtained</td><td>${d.riskScore} / ${d.octmsTotalRisk}</td></tr>
           <tr><td>Compliance % (A)</td><td>${d.compliancePctA.toFixed(2)}%</td></tr>
           <tr><td>Compliance % (B)</td><td>${d.compliancePctB.toFixed(2)}%</td></tr>
           ${d.closurePct!==null ? `<tr><td>ATR closure %</td><td>${d.closurePct.toFixed(2)}%</td></tr>` : ''}
