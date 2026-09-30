@@ -72,6 +72,13 @@ header.hero {
 .hero p { margin: 6px 0 0; opacity: .85; }
 .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
 @media (min-width: 820px) { .grid { grid-template-columns: 1fr 1fr; } .grid > section:first-child { grid-column: 1 / -1; } }
+.refwrap { background: #fff; border-radius: 18px; overflow: hidden; border: 1px solid var(--border); }
+.refstage { position: relative; width: 100%; max-width: 640px; margin: 0 auto; aspect-ratio: 1 / 1.0635; overflow: hidden; }
+.refstage img { position: absolute; top: 0; width: 241.5%; margin-top: -18.01%; display: block; user-select: none; -webkit-user-drag: none; }
+.refstage .ref-a { left: -9.78%; }
+.refstage .ref-b { left: -134.3%; opacity: 0; transition: opacity .2s linear; }
+.reftag { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); background: rgba(194, 82, 127, .92); color: #fff; font-weight: 800; font-size: 13px; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
+.fullref { width: 100%; height: auto; display: block; border-radius: 14px; border: 1px solid var(--border); background: #fff; }
 .pairs { display: grid; grid-template-columns: 1fr; gap: 6px; align-items: center; }
 @media (min-width: 820px) { .pairs { grid-template-columns: 1fr 70px 1fr; } }
 .pair { margin: 0; background: var(--surface-2); border-radius: 18px; padding: 10px 8px 4px; }
@@ -157,22 +164,15 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
   <div class="grid">
     <section class="card">
       <h2>Your body, now and with HRT</h2>
-      <p class="sub">Drawn from your measurements. Move the slider to see how bodies usually change over time.</p>
-      <div class="pairs">
-        <figure class="pair">
-          <div class="pairhead"><b>You now</b><span>front · side</span></div>
-          <svg id="nowFig" viewBox="0 0 460 430" role="img" aria-label="Your current body shape, front and side, with your measurements"></svg>
-        </figure>
-        <div class="arrow" aria-hidden="true"><span id="arrowText">HRT · 6 months</span></div>
-        <figure class="pair">
-          <div class="pairhead"><b id="hrtHead">With HRT · month 6</b><span>typical direction</span></div>
-          <svg id="hrtFig" viewBox="0 0 460 430" role="img" aria-label="Illustration of typical changes with feminizing HRT, front and side"></svg>
-        </figure>
+      <p class="sub">Move the slider or tap Play: the picture blends from the starting shape toward the HRT reference shape as the months go by.</p>
+      <div class="refwrap">
+        <div class="refstage" id="refStage" role="img" aria-label="Body shape blending from starting shape to the HRT reference shape">
+          <img src="reference.png" alt="" class="ref-a" />
+          <img src="reference.png" alt="" class="ref-b" id="refB" />
+          <span class="reftag" id="refTag">Starting shape</span>
+        </div>
       </div>
-      <div class="legend">
-        <span><i class="sw skin"></i>Body shape</span>
-        <span><i class="sw" style="border:1.5px dashed var(--muted)"></i>Your starting outline</span>
-      </div>
+      <div class="chips" id="myNums" style="justify-content:center"></div>
       <div class="timebar">
         <div class="monthlabel"><b id="monthText">Month 6</b><span class="tiny" id="monthWhen"></span></div>
         <input type="range" id="month" min="0" max="48" value="6" aria-label="Months on HRT" />
@@ -199,6 +199,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
       <h2>The big picture</h2>
       <p class="sub">When each change usually begins (light) and reaches its fullest (deep), across the first four years.</p>
       <svg id="gantt" role="img" aria-label="Timeline of HRT changes"></svg>
+    </section>
+
+    <section class="card" style="grid-column: 1 / -1">
+      <h2>Reference chart</h2>
+      <p class="sub">The picture you chose: starting shape vs. final shape, front and side.</p>
+      <img class="fullref" src="reference.png" alt="Reference chart comparing a starting body shape with a final HRT body shape, front and side views" loading="lazy" />
     </section>
 
     <section class="card" style="grid-column: 1 / -1">
@@ -273,143 +279,16 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 40px; }
     }
     return d;
   };
-  const TYPICAL = 0.85; // illustrative "typical" response; the real range is wide
-
-  // Front view, full body. Units ≈ viewBox units; widths come from circumferences.
-  function frontBody(M, b, f, mu, cx) {
-    const k = 0.95, diff = Math.max(0, M.bust - M.underbust);
-    const S = M.shoulders * 2.3 - 1.5 * mu;
-    const hw = {
-      armpit: M.underbust * k * 1.0 - mu,
-      bust: M.underbust * k + 1 + 1.5 * b,
-      under: M.underbust * k * 0.93,
-      waist: M.waist * k * 0.78 - 1.6 * f,
-      belly: M.belly * k * 0.78 - 3 * f,
-      hips: M.hips * k * 0.84 + 7 * f,
-      thigh: M.hips * k * 0.8 + 6 * f,
-    };
-    const lg = 14 + 0.8 * f; // leg centre offset
-    const right = [
-      [cx + 7, 52], [cx + 8, 62], [cx + S * 0.6, 68], [cx + S, 76],
-      [cx + hw.armpit, 96], [cx + hw.bust, 112], [cx + hw.under, 128],
-      [cx + hw.waist, 162], [cx + hw.belly, 186], [cx + hw.hips, 212],
-      [cx + hw.thigh, 240], [cx + lg + 11 + 1.2 * f, 268], [cx + lg + 10, 304],
-      [cx + lg + 11.5, 338], [cx + lg + 5, 388], [cx + lg + 10, 404],
-    ];
-    const rightIn = [
-      [cx + lg - 5, 404], [cx + lg - 4, 388], [cx + lg - 8, 338], [cx + lg - 8, 304],
-      [cx + 4 + 0.5 * f, 262], [cx + 1, 244],
-    ];
-    const mirror = pts => pts.map(([x, y]) => [2 * cx - x, y]);
-    const leftIn = mirror(rightIn).reverse();
-    const left = mirror(right).reverse();
-    const body = `${smooth(right)} L${rightIn[0][0]},404 ${smooth(rightIn).replace(/^M/, "L")} L${cx},242 ${smooth(leftIn).replace(/^M/, "L")} L${left[0][0]},404 ${smooth(left).replace(/^M/, "L")} Z`;
-    const arm = side => {
-      const sx = side, sh = cx + side * S;
-      const aw = 6.5 - 0.8 * mu;
-      const outer = [[sh, 76], [sh + sx * 5, 104], [sh + sx * 9, 164], [sh + sx * 13, 214], [sh + sx * 15, 240]];
-      const inner = [[sh + sx * (15 - aw * 1.3), 240], [sh + sx * (12.5 - aw * 1.2), 214], [sh + sx * (8.5 - aw * 1.5), 164], [sh + sx * (4 - aw * 1.9), 104], [cx + sx * (hw.armpit - 2), 94]];
-      return `${smooth(outer)} ${smooth(inner).replace(/^M/, "L")} Z`;
-    };
-    const r = Math.min(15, 6 + diff * 0.9 + b * 9);
-    const off = Math.max(13, r + 1);
-    const bustLines = [cx - off, cx + off].map(x => `M${(x - r).toFixed(1)},${112 + 2 * b} Q${x},${(112 + r * 1.25 + 2 * b).toFixed(1)} ${(x + r).toFixed(1)},${112 + 2 * b}`).join(" ");
-    return { body, arms: arm(1) + " " + arm(-1), bustLines, hw, S };
-  }
-
-  // Side view facing right.
-  function sideBody(M, b, f, mu, cx) {
-    const diff = Math.max(0, M.bust - M.underbust);
-    const front = [
-      [cx + 6, 52], [cx + 5, 64], [cx + M.underbust * 0.3 - 0.5 * mu, 88],
-      [cx + M.underbust * 0.3 + diff * 0.45 + b * 6, 100],
-      [cx + M.underbust * 0.3 + diff * 1.0 + b * 13, 114],
-      [cx + M.underbust * 0.3 + diff * 0.5 + b * 7, 124], [cx + M.underbust * 0.28, 134],
-      [cx + M.waist * 0.26 - 0.6 * f, 162], [cx + M.belly * 0.3 - 3 * f, 186],
-      [cx + 8, 226], [cx + 10, 262], [cx + 7, 302], [cx + 6, 342], [cx + 3, 388], [cx + 22, 404],
-    ];
-    const back = [
-      [cx - 10, 404], [cx - 7, 388], [cx - 12, 338], [cx - 8, 302], [cx - 12, 262],
-      [cx - 14 - 2 * f, 240], [cx - 8 - M.hips * 0.22 - 12 * f, 214], [cx - 9, 176],
-      [cx - 12, 124], [cx - 13, 92], [cx - 6, 62], [cx - 5, 52],
-    ];
-    const body = `${smooth(front)} L${cx + 22},404 L${cx - 10},404 ${smooth(back).replace(/^M/, "L")} Z`;
-    const aw = 7 - 0.8 * mu;
-    const arm = `${smooth([[cx - 6, 76], [cx - 5, 120], [cx - 2, 166], [cx + 2, 212], [cx + 4, 238]])} L${cx + 4 - aw},238 ${smooth([[cx + 4 - aw, 238], [cx + 2 - aw, 212], [cx - 2 - aw, 166], [cx - 6 - aw * 0.6, 120], [cx - 8, 84]]).replace(/^M/, "L")} Z`;
-    return { body, arm, bustX: front[3][0], buttX: back[6][0] };
-  }
-
-  const FRONT_CX = 100, SIDE_CX = 360;
-  const head = (cx, dx = 0) => `<ellipse cx="${cx + dx}" cy="30" rx="15" ry="19" fill="url(#skin)" stroke="var(--skin-line)" stroke-width="1.2"/>`;
-  const defs = `<defs><linearGradient id="skin" x1="0" x2="1"><stop offset="0" stop-color="var(--skin-1)"/><stop offset="1" stop-color="var(--skin-2)"/></linearGradient>
-    <marker id="ar" viewBox="0 0 6 6" refX="3" refY="3" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L6,3 L0,6 z" fill="var(--muted)"/></marker></defs>`;
-
-  function figureSvg(M, b, f, mu, withGhost) {
-    const fr = frontBody(M, b, f, mu, FRONT_CX);
-    const sd = sideBody(M, b, f, mu, SIDE_CX);
-    let g = defs;
-    const ghostF = withGhost ? frontBody(M, 0, 0, 0, FRONT_CX) : null;
-    const ghostS = withGhost ? sideBody(M, 0, 0, 0, SIDE_CX) : null;
-    // front
-    g += `<path d="${fr.arms}" fill="url(#skin)" stroke="var(--skin-line)" stroke-width="1.1"/>`;
-    g += `<path d="${fr.body}" fill="url(#skin)" stroke="var(--skin-line)" stroke-width="1.3" stroke-linejoin="round"/>`;
-    g += `<path d="${fr.bustLines}" fill="none" stroke="var(--skin-line)" stroke-width="1.2" stroke-linecap="round" opacity=".8"/>`;
-    g += `<path d="M${FRONT_CX - 3},188 q3,3 6,0" fill="none" stroke="var(--skin-line)" stroke-width="1" opacity=".7"/>`;
-    g += head(FRONT_CX);
-    if (ghostF) g += `<path d="${ghostF.body}" fill="none" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" opacity=".8"/>`;
-    // side
-    g += `<path d="${sd.body}" fill="url(#skin)" stroke="var(--skin-line)" stroke-width="1.3" stroke-linejoin="round"/>`;
-    g += `<path d="${sd.arm}" fill="url(#skin)" stroke="var(--skin-line)" stroke-width="1.1"/>`;
-    g += head(SIDE_CX, 2);
-    if (ghostS) g += `<path d="${ghostS.body}" fill="none" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" opacity=".8"/>`;
-    return { g, fr, sd };
-  }
-
-  // A label in the middle column with a leader line to a point on the figure.
-  const label = (x1, y, x2, text, cls = "") =>
-    `<line x1="${x1}" y1="${y}" x2="${x2 - 4}" y2="${y}" stroke="var(--muted)" stroke-width=".8"/><text class="${cls}" x="${x2}" y="${y + 4}">${text}</text>`;
-
-  // Label whose leader goes right, to the side figure.
-  const labelR = (xFig, y, text) => {
-    const w = text.replace(/<[^>]+>/g, "").length * 6.9 + 6;
-    return `<line x1="${190 + w}" y1="${y}" x2="${xFig}" y2="${y}" stroke="var(--muted)" stroke-width=".8"/><text x="190" y="${y + 4}">${text}</text>`;
-  };
-
+  // Blend from the starting half of the reference picture to the "final" half.
   function drawFigures(m) {
+    const b = eff("breast", m), f = eff("fat", m);
+    const blend = Math.min(1, ((b + f) / 2) / 0.8);
+    $("refB").style.opacity = blend.toFixed(3);
+    $("refTag").textContent = m === 0 ? "Starting shape" : blend >= 0.98 ? `Month ${m} · reference shape` : `Month ${m} · ${Math.round(blend * 100)}% of the way`;
     const M = meas();
-    // Now: body + your measurement lines
-    const now = figureSvg(M, 0, 0, 0, false);
-    let a = now.g;
-    const lines = [["Bust", M.bust, 112, now.fr.hw.bust], ["Underbust", M.underbust, 128, now.fr.hw.under], ["Waist", M.waist, 162, now.fr.hw.waist], ["Belly", M.belly, 186, now.fr.hw.belly], ["Hips", M.hips, 212, now.fr.hw.hips]];
-    for (const [n, v, y, w] of lines) {
-      a += `<line x1="${FRONT_CX - w + 2}" x2="${FRONT_CX + w - 2}" y1="${y}" y2="${y}" stroke="var(--now)" stroke-width="1" marker-start="url(#ar)" marker-end="url(#ar)" opacity=".75"/>`;
-      a += label(FRONT_CX + w + 4, y, 190, `${n} <tspan class="m">${fmt(v)}″</tspan>`);
-    }
-    a += label(FRONT_CX + now.fr.S + 2, 76, 190, `Shoulders <tspan class="m">${fmt(M.shoulders)}″</tspan>`);
-    $("nowFig").innerHTML = `<g class="fig">${a}</g>`;
-
-    // With HRT at month m
-    const b = eff("breast", m) * TYPICAL, f = eff("fat", m) * TYPICAL, mu = eff("muscle", m) * TYPICAL;
-    const h = figureSvg(M, b, f, mu, m > 0);
-    let c = h.g;
-    const pb = eff("breast", m), pf = eff("fat", m), pm = eff("muscle", m);
-    const word = (v, a2, b2, c2) => (v < 0.05 ? a2 : v < 0.4 ? b2 : c2);
-    const hl = [
-      [112, h.fr.hw.bust, word(pb, "Bust as now", "Breast buds forming", "Developed bust")],
-      [162, h.fr.hw.waist, word(pf, "Waist as now", "Softer waist", "Curved waist")],
-      [186, h.fr.hw.belly, word(pf, "Belly as now", "Softer tummy", "Smaller belly")],
-      [212, h.fr.hw.hips, word(pf, "Hips as now", "Hips filling out", "Rounded hips")],
-    ];
-    for (const [y, w, t] of hl) c += label(FRONT_CX + w + 4, y, 190, t);
-    c += `<line x1="${h.sd.buttX}" y1="214" x2="${h.sd.buttX - 4}" y2="236" stroke="var(--muted)" stroke-width=".8"/>`;
-    c += labelR(h.sd.buttX - 4, 236, word(pf, "Glutes as now", "Glutes softening", "Rounded glutes"));
-    c += labelR(SIDE_CX - 4, 138, word(pm, "Arms as now", "Muscle softening", "Slimmer arms"));
-    c += `<text x="230" y="426" text-anchor="middle" class="m">Shoulders, height & hands stay the same</text>`;
-    $("hrtFig").innerHTML = `<g class="fig">${c}</g>`;
-    $("hrtHead").textContent = m === 0 ? "With HRT · starting point" : `With HRT · ${m < 12 ? m + " months" : m % 12 === 0 ? m / 12 + (m === 12 ? " year" : " years") : (m / 12).toFixed(1) + " years"}`;
-    $("arrowText").textContent = m === 0 ? "HRT →" : `HRT · ${m} mo →`;
+    $("myNums").innerHTML = [["Bust", M.bust], ["Underbust", M.underbust], ["Waist", M.waist], ["Belly", M.belly], ["Hips", M.hips]]
+      .map(([n, v]) => `<span class="chip" style="cursor:default">${n} ${v}″</span>`).join("");
   }
-  const fmt = v => (Math.round(v * 10) / 10).toString();
 
   // ---------- Effects list ----------
   function drawEffects(m) {
