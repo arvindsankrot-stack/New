@@ -195,14 +195,14 @@
 
 <div class="card">
   <h2><span class="step-num">2</span> OCTMS <span class="badge">On-site · max 3</span></h2>
-  <label>OCTMS report — current non-complied export (not the pivot)</label>
+  <label>OCTMS report — current non-complied export or the old pivot table</label>
   <div class="file-row">
     <input type="file" id="octmsFile" accept=".xlsx,.xls">
   </div>
   <div class="filename" id="octmsFileName"></div>
-  <div class="note">Upload the export that lists what's STILL non-complied as of today (with BRANCH_ALPHA and
-    PARAMETER_VALUE columns) — not the full initial visit report. A row existing there IS the violation; once a
-    branch fixes a parameter it simply drops off your next export.</div>
+  <div class="note">Either works: the export that lists what's STILL non-complied as of today (BRANCH_ALPHA /
+    PARAMETER_VALUE columns — preferred, not the full initial visit report) or the older "Parameter" pivot
+    table you used to send. The file is checked automatically and read either way.</div>
 
   <label>Unmapped parameter codes — default risk rating</label>
   <select id="unmappedDefault">
@@ -440,11 +440,18 @@ function findFlatSheet(wb, requiredHeaders){
   return null;
 }
 
-// OCTMS now reads the flat "currently non-complied" export directly — a row
-// existing there already IS the violation signal, no pivoting needed.
+// OCTMS accepts two shapes: the flat "currently non-complied" export
+// (BRANCH_ALPHA / PARAMETER_VALUE columns — a row existing there already IS
+// the violation, no pivoting needed) or, for backward compatibility, the
+// older pivot report (a "Parameter" header row, branch names as columns).
+// Flat is tried first since it's the current export format.
 function resolveOctmsRows(){
   if(!octmsSource) return null;
-  return findFlatSheet(octmsSource.workbook, ['branch_alpha', 'parameter_value']);
+  const flat = findFlatSheet(octmsSource.workbook, ['branch_alpha', 'parameter_value']);
+  if(flat) return {type:'flat', ...flat};
+  const pivot = findPivotSheet(octmsSource.workbook, 'parameter');
+  if(pivot) return {type:'pivot', ...pivot};
+  return null;
 }
 
 async function calcOcrms(){
@@ -528,25 +535,55 @@ async function calcOctms(){
   if(!octmsSource){ flags.push('OCTMS file not uploaded — Parts A &amp; B skipped.'); return out; }
   const found = resolveOctmsRows();
   if(!found){
-    flags.push('Could not find BRANCH_ALPHA / PARAMETER_VALUE columns in the OCTMS file — upload the current '
-      + 'non-complied export, not the initial-visit pivot report.');
+    flags.push('Could not read the OCTMS file — upload either the current non-complied export '
+      + '(with BRANCH_ALPHA / PARAMETER_VALUE columns) or the older pivot report (a "Parameter" header row).');
     return out;
   }
-  const {rows, headerRowIdx, colIdx} = found;
-  const branchIdx = colIdx['branch_alpha'];
-  const paramIdx = colIdx['parameter_value'];
 
-  // Every row here already IS a currently-outstanding violation — no status
-  // column to filter by (see findFlatSheet/resolveOctmsRows above).
+  // Normalize both accepted shapes into one {branch, code} violation list —
+  // everything below this point (scoring) doesn't care which format it was.
   const violations = [];
-  for(let r=headerRowIdx+1;r<rows.length;r++){
-    const row = rows[r];
-    if(!row) continue;
-    const branch = row[branchIdx];
-    const code = row[paramIdx];
-    if(branch===null || branch===undefined || String(branch).trim()==='') continue;
-    if(code===null || code===undefined || String(code).trim()==='') continue;
-    violations.push({branch: String(branch).trim(), code: String(code).trim().toUpperCase()});
+  if(found.type === 'flat'){
+    // Every row here already IS a currently-outstanding violation — no
+    // status column to filter by (see findFlatSheet/resolveOctmsRows above).
+    const {rows, headerRowIdx, colIdx} = found;
+    const branchIdx = colIdx['branch_alpha'];
+    const paramIdx = colIdx['parameter_value'];
+    for(let r=headerRowIdx+1;r<rows.length;r++){
+      const row = rows[r];
+      if(!row) continue;
+      const branch = row[branchIdx];
+      const code = row[paramIdx];
+      if(branch===null || branch===undefined || String(branch).trim()==='') continue;
+      if(code===null || code===undefined || String(code).trim()==='') continue;
+      violations.push({branch: String(branch).trim(), code: String(code).trim().toUpperCase()});
+    }
+  } else {
+    // Older pivot format: header row = branch names as columns, rows below
+    // = parameter codes, a cell value > 0 means that branch violated that
+    // parameter. Kept for backward compatibility with files sent this way.
+    const {rows, headerRowIdx} = found;
+    const header = rows[headerRowIdx];
+    const branchCols = [];
+    for(let c=1;c<header.length;c++){
+      const h = header[c];
+      if(h && String(h).trim() && String(h).trim().toLowerCase()!=='grand total' && String(h).trim().toLowerCase()!=='(blank)'){
+        branchCols.push({idx:c, name:String(h).trim()});
+      }
+    }
+    for(let r=headerRowIdx+1;r<rows.length;r++){
+      const row = rows[r];
+      if(!row || row[0]===null || row[0]===undefined) continue;
+      const label = String(row[0]).trim();
+      if(!label || label.toLowerCase()==='grand total' || label==='(blank)') continue;
+      const code = label.toUpperCase();
+      branchCols.forEach(bc => {
+        const v = row[bc.idx];
+        if(v !== null && v !== undefined && Number(v) > 0){
+          violations.push({branch: bc.name, code});
+        }
+      });
+    }
   }
 
   const unmappedDefault = document.getElementById('unmappedDefault').value;
