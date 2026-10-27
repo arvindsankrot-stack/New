@@ -126,6 +126,9 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .partfiles{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere;margin:0}
 .meter{height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
 .meter i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+a{color:var(--accent)}
+.setup{border:1px dashed var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
 @media (max-width:380px){.capture{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:no-preference){.page,.frow{animation:pop .22s ease-out}@keyframes pop{from{transform:scale(.97)}to{transform:none}}}
 
@@ -237,7 +240,7 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
         Upload a ZIP file<small>Its files are added to this folder</small>
       </label>
       <input id="zipIn" type="file" accept=".zip,application/zip,application/x-zip-compressed">
-      <p class="hint">Every file inside the ZIP is saved in this folder and ticked. Then tap Prepare ZIP files below to repack them into new ZIPs of up to 10 MB each and send them by Gmail.</p>
+      <p class="hint">Every file inside the ZIP is saved in this folder and ticked. PDFs and photos bigger than 2 MB are made smaller first. Then tap Prepare ZIP files below to repack them into new ZIPs of up to 10 MB each and send them.</p>
       <p class="status" id="zipInStatus"></p>
     </div>
 
@@ -261,10 +264,29 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
           <button type="button" data-v="10" aria-pressed="true">10 MB</button>
           <button type="button" data-v="15" aria-pressed="false">15 MB</button>
         </div>
-        <p class="hint">Ticked documents are packed into as few ZIPs as fit. Each PDF stays whole inside one ZIP. Tap Share on each part and choose Gmail.</p>
+        <p class="hint">Ticked documents are packed into as few ZIPs as fit. Each PDF stays whole inside one ZIP. Then tap Send all, and the app tells you when each mail has gone.</p>
+      </div>
+      <div class="row">
+        <span class="lbl">Direct sending</span>
+        <p class="hint" id="sendState"></p>
+        <button class="btn sm" id="setupToggle" type="button">Set up direct sending</button>
+        <div class="setup" id="setupBox" hidden>
+          <ol class="hint steps">
+            <li>Open <a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener">script.google.com</a> signed in with the Gmail account that should send the mails. A new project opens.</li>
+            <li>Delete everything in the editor. Tap <b>Copy code</b> below, paste it into the editor and tap Save (disk icon).</li>
+            <li>Tap <b>Deploy → New deployment</b>, tap the gear icon and pick <b>Web app</b>. Set “Execute as” to <b>Me</b> and “Who has access” to <b>Anyone</b>. Tap Deploy.</li>
+            <li>Tap <b>Authorize access</b> and choose your account. If Google says the app isn't verified, tap <b>Advanced → Go to project</b>, then <b>Allow</b>. It is your own script.</li>
+            <li>Copy the <b>Web app URL</b>, paste it below and tap <b>Save and test</b>.</li>
+          </ol>
+          <button class="btn sm" id="copyCode" type="button">Copy code</button>
+          <input type="text" id="sendUrl" class="mono" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+          <button class="btn sm primary" id="saveSend" type="button">Save and test</button>
+          <p class="msg" id="setupMsg"></p>
+        </div>
       </div>
       <button class="btn" id="prepZip" type="button">Prepare ZIP files</button>
       <p class="status" id="zipStatus"></p>
+      <button class="btn primary" id="sendAll" type="button" hidden>Send all</button>
       <div id="parts" class="flist"></div>
       <p class="msg" id="sendMsg"></p>
     </div>
@@ -781,7 +803,9 @@ $('prepZip').addEventListener('click', async () => {
   $('sendMsg').textContent = ''; renderParts();
 });
 function renderParts() {
-  const box = $('parts');
+  const box = $('parts'), direct = !!sendCfg().url;
+  $('sendAll').hidden = !(S.parts && direct);
+  if (S.parts) $('sendAll').disabled = S.parts.some(p => p.state === 'sending') || S.parts.every(p => p.state === 'sent');
   if (!S.parts) { box.innerHTML = ''; return; }
   box.innerHTML = S.parts.map((p, i) => `
     <div class="part ${p.state === 'sent' ? 'sent' : p.state === 'failed' ? 'failed' : ''}" data-i="${i}">
@@ -789,20 +813,116 @@ function renderParts() {
       <div class="meter"><i style="width:${Math.min(100, p.blob.size / (S.zipLimit * MB) * 100).toFixed(1)}%"></i></div>
       <p class="partfiles">${p.files.map(esc).join(' · ')}</p>
       <div class="btnrow">
-        <button class="btn sm primary" data-a="share" type="button">${p.state === 'sent' ? 'Share again' : 'Share to Gmail'}</button>
+        ${direct ? `<button class="btn sm primary" data-a="send" type="button" ${p.state === 'sending' ? 'disabled' : ''}>${p.state === 'sending' ? 'Sending…' : p.state === 'sent' ? 'Send again' : 'Send now'}</button>` : ''}
+        <button class="btn sm ${direct ? '' : 'primary'}" data-a="share" type="button">${direct ? 'Share' : p.state === 'sent' ? 'Share again' : 'Share to Gmail'}</button>
         <button class="btn sm" data-a="save" type="button">Download ZIP</button>
       </div>
-      ${p.note ? `<p class="msg ${p.state === 'sent' ? 'good' : 'bad'}">${esc(p.note)}</p>` : ''}
+      ${p.note ? `<p class="msg ${p.state === 'sent' ? 'good' : p.state === 'sending' ? '' : 'bad'}">${esc(p.note)}</p>` : ''}
     </div>`).join('');
 }
-$('parts').addEventListener('click', async e => {
-  const b = e.target.closest('button'); if (!b) return;
-  const i = +b.closest('.part').dataset.i, p = S.parts[i], n = S.parts.length;
-  if (b.dataset.a === 'save') { download(p.blob, p.name); return; }
-  const f = S.folders.find(x => x.id === S.current);
-  const to = $('mailTo').value.trim(); if (to) { lsSet('scanner.mailTo', to); try { await navigator.clipboard.writeText(to); } catch (err) {} }
+function mailText(i) {
+  const p = S.parts[i], n = S.parts.length, f = S.folders.find(x => x.id === S.current);
   const subject = ($('mailSubject').value.trim() || (f ? f.name : 'Documents')) + (n > 1 ? ` (Part ${i + 1} of ${n})` : '');
   const body = `Dear Sir/Madam,\n\nPlease find attached ${n > 1 ? `part ${i + 1} of ${n} of ` : ''}the documents for ${f ? f.name : 'the folder'}.\n\nFiles in this ZIP:\n${p.files.map(x => '- ' + x).join('\n')}\n\nRegards`;
+  return { subject, body };
+}
+
+/* ---------- direct sending through the user's own Google Apps Script ---------- */
+function sendCfg() {
+  let key = lsGet('scanner.sendKey');
+  if (!key) { const a = new Uint8Array(18); crypto.getRandomValues(a); key = [...a].map(x => x.toString(16).padStart(2, '0')).join(''); lsSet('scanner.sendKey', key); }
+  return { url: lsGet('scanner.sendUrl') || '', key };
+}
+function scriptCode(key) {
+  return [
+    '// Pocket PDF Scanner mail sender. Sends ZIPs from your own Gmail.',
+    `const KEY = '${key}';`,
+    'function doPost(e) {',
+    '  try {',
+    '    const d = JSON.parse(e.postData.contents);',
+    "    if (d.key !== KEY) return out({ ok: false, error: 'wrong-key' });",
+    '    if (d.test) return out({ ok: true, remaining: MailApp.getRemainingDailyQuota() });',
+    "    const zip = Utilities.newBlob(Utilities.base64Decode(d.data), 'application/zip', d.filename);",
+    '    MailApp.sendEmail({ to: d.to, subject: d.subject, body: d.body, attachments: [zip] });',
+    '    return out({ ok: true, remaining: MailApp.getRemainingDailyQuota() });',
+    '  } catch (err) { return out({ ok: false, error: String(err) }); }',
+    '}',
+    'function doGet() { return out({ ok: true }); }',
+    'function out(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }',
+    ''
+  ].join('\n');
+}
+const blobToBase64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
+async function callScript(payload) {
+  const cfg = sendCfg();
+  let r;
+  try { r = await fetch(cfg.url, { method: 'POST', body: JSON.stringify({ key: cfg.key, ...payload }) }); }
+  catch (e) { throw new Error('No internet connection, or the Web app URL is wrong. Try again.'); }
+  let j;
+  try { j = await r.json(); }
+  catch (e) { throw new Error('The sending link did not answer. Check that “Who has access” is set to Anyone, then Save and test again.'); }
+  if (!j.ok) throw new Error(j.error === 'wrong-key'
+    ? 'The code on script.google.com does not match this phone. Copy the code again, paste it, and deploy again.'
+    : 'Gmail refused to send: ' + (j.error || 'unknown error'));
+  return j;
+}
+function renderSendState() {
+  const on = !!sendCfg().url;
+  $('sendState').textContent = on ? 'On. Send now mails each ZIP straight from your Gmail and shows when it has gone.'
+    : 'Off. Set it up once so the app can send mails itself and tell you when they are sent.';
+  $('setupToggle').textContent = on ? 'Change direct sending' : 'Set up direct sending';
+  $('sendUrl').value = sendCfg().url;
+}
+$('setupToggle').addEventListener('click', () => { $('setupBox').hidden = !$('setupBox').hidden; });
+$('copyCode').addEventListener('click', async () => {
+  const code = scriptCode(sendCfg().key);
+  try { await navigator.clipboard.writeText(code); $('copyCode').textContent = 'Copied'; }
+  catch (e) { download(new Blob([code], { type: 'text/plain' }), 'mail-sender.gs'); $('copyCode').textContent = 'Downloaded'; }
+  setTimeout(() => { $('copyCode').textContent = 'Copy code'; }, 1500);
+});
+$('saveSend').addEventListener('click', async () => {
+  const url = $('sendUrl').value.trim(), m = $('setupMsg');
+  if (!/^https:\/\/script\.google(usercontent)?\.com\/.+/.test(url)) { m.className = 'msg bad'; m.textContent = 'Paste the Web app URL. It starts with https://script.google.com/macros/s/'; return; }
+  const old = lsGet('scanner.sendUrl'); lsSet('scanner.sendUrl', url);
+  $('saveSend').disabled = true; m.className = 'msg'; m.textContent = 'Testing…';
+  try {
+    const j = await callScript({ test: true });
+    m.className = 'msg good'; m.textContent = `Working. You can send ${j.remaining ?? 'up to 100'} more mails today.`;
+    renderSendState(); renderParts(); setTimeout(() => { $('setupBox').hidden = true; }, 2500);
+  } catch (e) { lsSet('scanner.sendUrl', old || ''); m.className = 'msg bad'; m.textContent = e.message; renderSendState(); }
+  $('saveSend').disabled = false;
+});
+async function sendPart(i) {
+  const p = S.parts[i], to = $('mailTo').value.trim(), msg = $('sendMsg');
+  if (!to.split(',').every(x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x.trim()))) {
+    msg.className = 'msg bad'; msg.textContent = 'Type a valid email address in To first.'; $('mailTo').focus(); return false;
+  }
+  lsSet('scanner.mailTo', to); msg.textContent = '';
+  const { subject, body } = mailText(i);
+  p.state = 'sending'; p.note = `Sending to ${to}…`; renderParts();
+  try {
+    const j = await callScript({ to, subject, body, filename: p.name, data: await blobToBase64(p.blob) });
+    const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    p.state = 'sent'; p.note = `✓ Sent to ${to} at ${t}.` + (j.remaining != null ? ` ${j.remaining} mails left today.` : '');
+  } catch (e) { p.state = 'failed'; p.note = e.message; }
+  renderParts(); return p.state === 'sent';
+}
+$('sendAll').addEventListener('click', async () => {
+  if (!S.parts) return;
+  const todo = S.parts.map((p, i) => i).filter(i => S.parts[i].state !== 'sent');
+  let ok = 0;
+  for (const i of todo) { if (await sendPart(i)) ok++; else break; }
+  const m = $('sendMsg'), all = S.parts.every(p => p.state === 'sent');
+  if (all) { m.className = 'msg good'; m.textContent = `✓ All ${S.parts.length} mail${S.parts.length > 1 ? 's' : ''} sent successfully.`; }
+  else if (!m.textContent) { m.className = 'msg bad'; m.textContent = `${ok} sent. Sending stopped; read the message on the part above and try again.`; }
+});
+$('parts').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const i = +b.closest('.part').dataset.i, p = S.parts[i];
+  if (b.dataset.a === 'save') { download(p.blob, p.name); return; }
+  if (b.dataset.a === 'send') { await sendPart(i); return; }
+  const to = $('mailTo').value.trim(); if (to) { lsSet('scanner.mailTo', to); try { await navigator.clipboard.writeText(to); } catch (err) {} }
+  const { subject, body } = mailText(i);
   const r = await shareOrDownload(p.blob, p.name, 'application/zip', subject, body);
   if (r === 'shared') { p.state = 'sent'; p.note = to ? `Shared. In Gmail, paste ${to} into To (it is copied).` : 'Shared.'; }
   else if (r === 'downloaded') { p.note = 'This browser cannot share files, so the ZIP was downloaded. Attach it in Gmail.'; }
@@ -822,15 +942,33 @@ $('zipIn').addEventListener('change', async e => {
   catch (err) { st.className = 'msg bad'; st.textContent = 'This is not a ZIP file the app can open.'; return; }
   const entries = Object.values(zip.files).filter(x => !x.dir && !/(^|\/)(__MACOSX\/|\.)/.test(x.name));
   if (!entries.length) { st.className = 'msg bad'; st.textContent = 'The ZIP has no files inside.'; return; }
-  let added = 0, big = [];
+  let added = 0, big = [], shrunk = [], kept = [];
   try {
     for (let i = 0; i < entries.length; i++) {
-      st.textContent = `Adding file ${i + 1} of ${entries.length}…`;
-      const name = safeName(entries[i].name.split('/').pop());
-      const isPdf = /\.pdf$/i.test(name);
+      const tag = `File ${i + 1} of ${entries.length}`;
+      st.textContent = `${tag}: reading…`;
+      let name = safeName(entries[i].name.split('/').pop());
+      const isPdf = /\.pdf$/i.test(name), isImg = /\.(jpe?g|png|webp|bmp|gif)$/i.test(name);
       const data = await entries[i].async('blob');
-      const blob = new Blob([data], { type: isPdf ? 'application/pdf' : 'application/octet-stream' });
-      await store.addFile(fid, name, blob, null);
+      let blob = new Blob([data], { type: isPdf ? 'application/pdf' : 'application/octet-stream' }), pages = null;
+      if (blob.size > SHRINK_TO) {
+        const before = blob.size;
+        try {
+          if (isPdf) {
+            const pgs = await Promise.race([pdfToPages(blob, (n, t) => { st.textContent = `${tag}: reading page ${n} of ${t}…`; }),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 120000))]);
+            const small = await shrinkToPdf(pgs, SHRINK_TO, (mode, dpi) => { st.textContent = `${tag}: making it smaller (${dpi} DPI)…`; });
+            if (small.size < before) { blob = small; pages = pgs.length; }
+          } else if (isImg) {
+            st.textContent = `${tag}: making the photo smaller…`;
+            const small = await shrinkImage(blob, SHRINK_TO);
+            if (small.size < before) { blob = small; name = name.replace(/\.[^.]+$/, '.jpg'); }
+          }
+        } catch (err) { /* damaged, locked or unsupported: keep the original */ }
+        if (blob.size < before) shrunk.push(`${name} ${fmt(before)} → ${fmt(blob.size)}`);
+        if (blob.size > SHRINK_TO) kept.push(name);
+      }
+      await store.addFile(fid, name, blob, pages);
       if (blob.size + 400 > S.zipLimit * MB - 128 * 1024) big.push(name);
       added++;
     }
@@ -838,10 +976,79 @@ $('zipIn').addEventListener('change', async e => {
     st.className = 'msg bad'; st.textContent = `Added ${added} of ${entries.length} files, then ran out of space or hit a damaged file.`; return;
   }
   S.parts = null; renderParts();
-  st.className = big.length ? 'msg amber' : 'msg good';
-  st.textContent = `Added ${added} file${added === 1 ? '' : 's'} from ${file.name}. Tap Prepare ZIP files below to make new ZIPs of up to ${S.zipLimit} MB.` +
+  st.className = big.length || kept.length ? 'msg amber' : 'msg good';
+  st.textContent = `Added ${added} file${added === 1 ? '' : 's'} from ${file.name}.` +
+    (shrunk.length ? ` Made smaller: ${shrunk.join('; ')}.` : '') +
+    (kept.length ? ` Still over 2 MB (could not be made smaller): ${kept.join(', ')}.` : '') +
+    ` Tap Prepare ZIP files below to make new ZIPs of up to ${S.zipLimit} MB.` +
     (big.length ? ` These files are bigger than one ZIP on their own, so untick them or pick a bigger ZIP size: ${big.join(', ')}.` : '');
 });
+
+/* ---------- shrinking files over 2 MB from an uploaded ZIP ---------- */
+const SHRINK_TO = 2 * MB;
+const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+let pdfjsReady = null;
+function loadPdfJs() {
+  if (!pdfjsReady) pdfjsReady = new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = PDFJS + 'pdf.min.js';
+    s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js'; res(window.pdfjsLib); };
+    s.onerror = () => { pdfjsReady = null; rej(new Error('pdfjs')); };
+    document.head.appendChild(s);
+  });
+  return pdfjsReady;
+}
+/* Render each PDF page to a 200 DPI picture, the same input the scanner works with. */
+async function pdfToPages(blob, onPage) {
+  const lib = await loadPdfJs();
+  const doc = await lib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
+  const pages = [];
+  try {
+    for (let i = 1; i <= doc.numPages; i++) {
+      onPage(i, doc.numPages);
+      const pg = await doc.getPage(i), v1 = pg.getViewport({ scale: 1 });
+      const vp = pg.getViewport({ scale: Math.min(200 / 72, 2400 / Math.max(v1.width, v1.height)) });
+      const c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+      await pg.render({ canvasContext: ctx, viewport: vp }).promise;
+      pages.push({ blob: await toBlob(c, 'image/jpeg', 0.92), rot: 0 });
+      pg.cleanup();
+    }
+  } finally { doc.destroy(); }
+  return pages;
+}
+/* Keep colour if it fits, then greyscale, then Clear B&W; returns the smallest PDF tried. */
+async function shrinkToPdf(pages, limit, onStep) {
+  const plans = [['color', STEPS.jpeg.fit], ['grey', STEPS.jpeg.fit]];
+  if (HAS_DEFLATE) plans.push(['bw', STEPS.bw.fit], ['bw', STEPS.bw.force]); else plans.push(['grey', STEPS.jpeg.force]);
+  let best = null;
+  for (const [mode, list] of plans) {
+    for (let s = 0; s < list.length; s++) {
+      const step = list[s], enc = [];
+      onStep(mode, step.dpi);
+      for (const p of pages) enc.push(await encodePage(p, step, mode));
+      const pdf = buildPdf(enc);
+      if (!best || pdf.size < best.size) best = pdf;
+      if (pdf.size <= limit) return pdf;
+      while (s + 1 < list.length - 1 && pdf.size * Math.pow(list[s + 1].dpi / step.dpi, 2) > limit * 1.25) s++;
+    }
+  }
+  return best;
+}
+async function shrinkImage(blob, limit) {
+  const bmp = await createImageBitmap(blob);
+  let dim = Math.min(3000, Math.max(bmp.width, bmp.height)), q = 0.85, out = null;
+  for (let k = 0; k < 10; k++) {
+    const s = dim / Math.max(bmp.width, bmp.height), c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(bmp.width * s)); c.height = Math.max(1, Math.round(bmp.height * s));
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.imageSmoothingQuality = 'high'; ctx.drawImage(bmp, 0, 0, c.width, c.height);
+    out = await toBlob(c, 'image/jpeg', q);
+    if (out.size <= limit) break;
+    if (q > 0.6) q -= 0.12; else dim = Math.round(dim * 0.8);
+  }
+  bmp.close && bmp.close();
+  return out;
+}
 
 /* ---------- install ---------- */
 let installEvt = null;
@@ -857,6 +1064,7 @@ $('installBtn').addEventListener('click', async () => { if (!installEvt) return;
 $('installClose').addEventListener('click', () => { lsSet('scanner.noInstall', '1'); $('installBanner').hidden = true; });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
+renderSendState();
 idb.open().then(store.reload).catch(() => showBanner('This browser blocks local storage, so folders cannot be saved. Open the app in Chrome.'));
 renderTray();
 })();

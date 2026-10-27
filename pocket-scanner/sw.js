@@ -1,5 +1,5 @@
 /* Offline support: app files are cached; the page itself is fetched fresh when online. */
-const CACHE = 'pocket-scanner-v1';
+const CACHE = 'pocket-scanner-v2';
 const SHELL = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
   'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'];
 
