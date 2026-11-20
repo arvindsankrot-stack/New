@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Seeds</h1>
+<p class="muted">Things to search for: old usernames, email addresses, phone numbers, name variants, and reference photos of your own face.</p>
+
+<div class="panel">
+  <h2 style="margin-top:0">Add text seeds</h2>
+  <form method="post" action="/seeds">
+    <div class="row">
+      <div class="shrink"><label for="kind">Type</label>
+        <select name="kind" id="kind">{% for k in kinds %}<option value="{{ k }}">{{ k }}</option>{% endfor %}</select></div>
+      <div><label for="value">Values (one per line)</label><textarea name="value" id="value" style="min-height:70px" required></textarea></div>
+      <div class="shrink"><button>Add</button></div>
+    </div>
+  </form>
+</div>
+
+<div class="table-wrap"><table>
+  <tr><th>Type</th><th>Value</th><th></th></tr>
+  {% for s in seeds if s.kind != 'photo' %}
+  <tr><td>{{ s.kind }}</td><td>{{ s.value }}</td>
+    <td><form method="post" action="/seeds/{{ s.id }}/delete" class="inline" data-confirm="Delete this seed?"><button class="secondary small">Delete</button></form></td></tr>
+  {% else %}<tr><td colspan="3" class="muted">No text seeds yet.</td></tr>{% endfor %}
+</table></div>
+
+<h2>Reference photos (your own face only)</h2>
+<div class="panel">
+  <p class="small muted">Photos are encrypted on disk. The face module only ever compares found images against these references, and only photos you confirm as your own face can be used. Use clear photos with exactly one face.
+  {% if not face_available %}<br><strong>Local face matching is not installed</strong> — build with <code>WITH_FACE=true</code> (see README). Photos can still be stored and used with FaceCheck.{% endif %}</p>
+  <form method="post" action="/seeds/photo" enctype="multipart/form-data">
+    <div class="row">
+      <div><label for="photo">Photo</label><input type="file" name="photo" id="photo" accept="image/jpeg,image/png,image/webp" required></div>
+      <div><label for="label">Label (optional)</label><input type="text" name="label" id="label"></div>
+    </div>
+    <label class="check"><input type="checkbox" name="self_attested" value="yes" required> This photo shows only my own face, and I am using it to find images of myself.</label>
+    <p><button>Upload</button></p>
+  </form>
+  <div class="row">
+  {% for s in seeds if s.kind == 'photo' %}
+    <div class="shrink panel" style="margin:0">
+      <img class="thumb" src="/seeds/{{ s.id }}/photo" alt="reference photo {{ s.label }}">
+      <div class="small">{{ s.label or 'Photo #' ~ s.id }}<br>{% if s.face_encoding_enc %}<span class="badge risk-low">enrolled</span>{% else %}<span class="badge">not enrolled</span>{% endif %}</div>
+      <form method="post" action="/face/facecheck/{{ s.id }}" class="inline" data-confirm="Send this photo to FaceCheck.ID for a face search? (Uses your FaceCheck credits unless testing mode is on.)"><button class="secondary small">FaceCheck search</button></form>
+      <form method="post" action="/seeds/{{ s.id }}/delete" class="inline" data-confirm="Delete this photo?"><button class="secondary small">Delete</button></form>
+    </div>
+  {% endfor %}
+  </div>
+</div>
+
+<h2>Import face / reverse-image results</h2>
+<div class="panel">
+  <p class="small muted">Google Lens, Bing Visual Search and PimEyes have no API you can use for this. Run the search yourself in your browser with your own photo, then paste the result links here (one per line: <code>page_url [image_url]</code>). The app will score each image against your face locally.</p>
+  <form method="post" action="/face/import">
+    <div class="row">
+      <div class="shrink"><label for="service">Service</label>
+        <select name="service" id="service"><option>Google Lens</option><option>PimEyes</option><option>Bing Visual Search</option><option>Yandex Images</option><option>Other</option></select></div>
+      <div><label for="lines">Result links</label><textarea name="lines" id="lines" style="min-height:90px" required></textarea></div>
+      <div class="shrink"><button>Import</button></div>
+    </div>
+  </form>
+</div>
+
+<h2>Your details for requests</h2>
+<div class="panel">
+  <form method="post" action="/settings/profile">
+    <div class="row">
+      <div><label for="pn">Full name</label><input type="text" id="pn" name="full_name" value="{{ owner.full_name if owner else '' }}"></div>
+      <div><label for="pc">Country</label><input type="text" id="pc" name="country" value="{{ owner.country if owner else '' }}"></div>
+    </div>
+    <label for="pa">Postal address (optional; only included in requests if filled)</label>
+    <textarea id="pa" name="postal_address" style="min-height:60px">{{ owner.postal_address if owner else '' }}</textarea>
+    <p><button>Save</button></p>
+  </form>
+</div>
+{% endblock %}

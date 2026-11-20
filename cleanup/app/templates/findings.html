@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Review findings</h1>
+<form method="get" action="/findings" class="panel row">
+  <div><label for="site">Site</label><select name="site" id="site"><option value="">all</option>{% for s in sites %}<option {% if filters.site == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+  <div><label for="risk">Risk</label><select name="risk" id="risk"><option value="">all</option>{% for r in ['high','medium','low'] %}<option {% if filters.risk == r %}selected{% endif %}>{{ r }}</option>{% endfor %}</select></div>
+  <div><label for="ownership">Mine?</label><select name="ownership" id="ownership"><option value="">all</option>{% for o in ['mine','unsure','not_mine','unknown'] %}<option value="{{ o }}" {% if filters.ownership == o %}selected{% endif %}>{{ o | replace('_',' ') }}</option>{% endfor %}</select></div>
+  <div><label for="content_type">Type</label><select name="content_type" id="content_type"><option value="">all</option>{% for t in ['photo','comment','post','profile','address','contact','other'] %}<option {% if filters.content_type == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+  <div><label for="decision">Decision</label><select name="decision" id="decision"><option value="">all</option>{% for d in ['pending','remove','keep'] %}<option {% if filters.decision == d %}selected{% endif %}>{{ d }}</option>{% endfor %}</select></div>
+  <div class="shrink"><button>Filter</button></div>
+</form>
+<p class="small muted">{{ findings|length }} shown, highest risk first. Nothing is sent from this page.</p>
+<div class="table-wrap"><table>
+  <tr><th></th><th>Finding</th><th>Labels</th><th>Decision</th></tr>
+  {% for f in findings %}{% include "partials/finding_row.html" %}
+  {% else %}<tr><td colspan="4" class="muted">No findings match.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

@@ -1,0 +1,18 @@
+<tr id="f{{ f.id }}" class="decided-{{ f.decision }}">
+  <td>{% if f.thumbnail_url or f.image_url %}<img class="thumb" loading="lazy" src="{{ f.thumbnail_url or f.image_url }}" alt="">{% endif %}</td>
+  <td><a href="/findings/{{ f.id }}"><strong>{{ f.title or f.url }}</strong></a>
+      <div class="url muted">{{ f.url }}</div>
+      <div class="small">{{ f.snippet[:240] }}{% if f.snippet|length > 240 %}…{% endif %}</div>
+      {% if f.reason %}<div class="small muted">Why: {{ f.reason }}</div>{% endif %}</td>
+  <td><span class="badge risk-{{ f.risk }}">{{ f.risk }}</span><div class="small">{{ f.content_type }}</div>
+      <div class="small">{{ f.ownership | replace('_',' ') }}</div>
+      {% if f.face_score is not none %}<div class="small">face {{ '%.2f' % f.face_score }}</div>{% endif %}
+      <div class="small muted">{{ f.source }}</div></td>
+  <td style="white-space:nowrap">
+    <form method="post" action="/findings/{{ f.id }}/decision" hx-post="/findings/{{ f.id }}/decision" hx-target="#f{{ f.id }}" hx-swap="outerHTML" class="inline">
+      <input type="hidden" name="decision" value="remove"><button class="small {% if f.decision != 'remove' %}secondary{% endif %}">Remove</button></form>
+    <form method="post" action="/findings/{{ f.id }}/decision" hx-post="/findings/{{ f.id }}/decision" hx-target="#f{{ f.id }}" hx-swap="outerHTML" class="inline">
+      <input type="hidden" name="decision" value="keep"><button class="small {% if f.decision != 'keep' %}secondary{% endif %}">Keep</button></form>
+    {% if f.decision == 'remove' %}<div><a class="small" href="/findings/{{ f.id }}">Draft request →</a></div>{% endif %}
+  </td>
+</tr>

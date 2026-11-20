@@ -1,0 +1,16 @@
+Subject: Request to remove my personal information - {{ site_name }}
+Hello {{ site_name }} privacy / support team,
+
+I am writing to ask you to remove {{ describe }} from your service. The content is at:
+
+{{ url }}
+{% if title %}Title: {{ title }}
+{% endif %}
+I am the person this content is about{% if account_username %}, and I used the account "{{ account_username }}" on your service{% endif %}. I no longer wish this information to be publicly available and I ask that you delete it, including any copies and cached versions you control.
+
+Please let me know when this has been done, or tell me if you need anything further from me to process this request.
+
+Thank you,
+{{ owner_name }}
+{% if owner_address %}{{ owner_address }}
+{% endif %}

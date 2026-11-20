@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Identity documents</h1>
+<div class="panel">
+  <p>Only store a <strong>masked Aadhaar</strong> (first 8 digits hidden — download it from the UIDAI site). Documents are encrypted and attached to a request only when a site explicitly asks for proof of identity and you confirm it on the send screen.</p>
+  <form method="post" action="/documents" enctype="multipart/form-data">
+    <div class="row">
+      <div><label for="label">Label</label><input type="text" id="label" name="label" value="Masked Aadhaar" required></div>
+      <div><label for="file">File (PDF/JPEG/PNG)</label><input type="file" id="file" name="file" accept="application/pdf,image/jpeg,image/png" required></div>
+    </div>
+    <label class="check"><input type="checkbox" name="masked_confirmed" value="yes" required> This is a masked Aadhaar: only the last 4 digits are visible.</label>
+    <p><button>Upload</button></p>
+  </form>
+</div>
+<div class="table-wrap"><table>
+  {% for d in docs %}<tr><td>{{ d.label }}</td><td class="small muted">{{ d.original_filename }} · {{ d.created_at.strftime('%Y-%m-%d') }}</td>
+    <td><form method="post" action="/documents/{{ d.id }}/delete" data-confirm="Delete this document?"><button class="secondary small">Delete</button></form></td></tr>
+  {% else %}<tr><td class="muted">No documents stored.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

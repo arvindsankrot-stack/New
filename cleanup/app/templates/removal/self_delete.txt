@@ -1,0 +1,8 @@
+Subject: Checklist: delete {{ describe }} on {{ site_name }}
+Delete this yourself - it is the fastest route and needs no request.
+
+1. Sign in to {{ site_name }} yourself{% if account_username %} (account: {{ account_username }}){% endif %}. The app never signs in for you.
+2. Open: {{ url }}
+3. Use the site's own delete / edit option for this {{ content_type }}.
+4. If you no longer need the account, delete or deactivate it from the account settings page.
+5. Come back and click "Mark as sent" - the tracker will re-check the URL and mark it Removed once it is gone.

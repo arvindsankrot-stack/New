@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<p><a href="/findings">← Review</a></p>
+<h1>{{ f.title or f.url }}</h1>
+<div class="panel">
+  <div class="row">
+    {% if f.thumbnail_url or f.image_url %}<div class="shrink"><img class="thumb" style="width:140px;height:140px" src="{{ f.image_url or f.thumbnail_url }}" alt=""></div>{% endif %}
+    <div>
+      <p class="url"><a href="{{ f.url }}" target="_blank" rel="noopener noreferrer">{{ f.url }}</a></p>
+      <p>{{ f.snippet }}</p>
+      <p><span class="badge risk-{{ f.risk }}">{{ f.risk }} risk</span> <span class="badge">{{ f.content_type }}</span> <span class="badge">{{ f.ownership | replace('_',' ') }}</span>
+        {% if f.face_score is not none %}<span class="badge">face match {{ '%.2f' % f.face_score }}</span>{% endif %}
+        <span class="badge">source: {{ f.source }}</span> <span class="badge">labelled by {{ f.classified_by or '—' }}</span></p>
+      {% if f.reason %}<p class="small muted">{{ f.reason }}</p>{% endif %}
+      {% if f.meta.get('subreddit') %}<p class="small">r/{{ f.meta.subreddit }} · author u/{{ f.meta.author }}</p>{% endif %}
+    </div>
+  </div>
+  <div class="row">
+    <form method="post" action="/findings/{{ f.id }}/decision" class="shrink"><input type="hidden" name="decision" value="remove"><button class="{% if f.decision != 'remove' %}secondary{% endif %}">Remove</button></form>
+    <form method="post" action="/findings/{{ f.id }}/decision" class="shrink"><input type="hidden" name="decision" value="keep"><button class="{% if f.decision != 'keep' %}secondary{% endif %}">Keep</button></form>
+    <form method="post" action="/findings/{{ f.id }}/ownership" class="shrink row">
+      <select name="ownership" aria-label="ownership">{% for o in ['mine','unsure','not_mine'] %}<option value="{{ o }}" {% if f.ownership == o %}selected{% endif %}>{{ o | replace('_',' ') }}</option>{% endfor %}</select>
+      <button class="secondary small shrink">Correct label</button></form>
+  </div>
+</div>
+
+{% if f.decision == 'remove' %}
+<h2>Removal routes</h2>
+<div class="table-wrap"><table>
+  {% for r in routes %}
+  <tr><td><strong>{{ r.label }}</strong>{% if r.recommended %} <span class="badge risk-low">recommended</span>{% endif %}
+      <div class="small muted">{{ r.why }} · via {{ r.channel }}</div></td>
+      <td><form method="post" action="/findings/{{ f.id }}/draft"><input type="hidden" name="route" value="{{ r.route }}"><button class="small">Draft</button></form></td></tr>
+  {% endfor %}
+</table></div>
+{% if site and site.notes %}<p class="small muted">Note for {{ site.domain }}: {{ site.notes }}</p>{% endif %}
+<p class="small muted">Missing a contact address? Add it on the <a href="/sites">Sites</a> page, then draft again.</p>
+{% else %}
+<p class="muted">Mark this finding as Remove to see removal routes.</p>
+{% endif %}
+
+<h2>Requests for this finding</h2>
+<div class="table-wrap"><table>
+  {% for r in f.requests %}<tr><td><a href="/requests/{{ r.id }}">#{{ r.id }} {{ r.subject }}</a></td><td>{{ r.route }}</td><td><span class="badge st-{{ r.status }}">{{ r.status }}</span></td></tr>
+  {% else %}<tr><td class="muted">None yet.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

@@ -1,0 +1,11 @@
+Subject: Follow-up: {{ original_subject }}
+Hello,
+
+I am following up on my request of {{ original_date }} ({{ days }} days ago) about the content below, to which I have not yet received a reply:
+
+{{ url }}
+
+Could you please let me know the status of my request, and confirm once the content has been removed?
+
+Thank you,
+{{ owner_name }}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Accounts</h1>
+<div class="panel">
+  <h2 style="margin-top:0">Gmail accounts</h2>
+  <p class="small muted">Connected with <code>gmail.readonly</code> (to find sign-up emails and replies) and <code>gmail.send</code> (only used when you click Send). Tokens are encrypted.</p>
+  {% if not oauth_ok %}<p class="error">Google OAuth is not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env (see README).</p>{% endif %}
+  <table>
+    {% for g in gmails %}
+    <tr><td>{{ g.email }}</td><td class="small muted">last scan: {{ g.last_scan_at.strftime('%Y-%m-%d %H:%M') if g.last_scan_at else 'never' }}</td>
+      <td><form method="post" action="/accounts/gmail/{{ g.id }}/scan" class="inline"><button class="small">Scan for sign-ups</button></form>
+          <form method="post" action="/accounts/gmail/{{ g.id }}/disconnect" class="inline" data-confirm="Disconnect and revoke access for {{ g.email }}?"><button class="secondary small">Disconnect</button></form></td></tr>
+    {% else %}<tr><td class="muted">No Gmail accounts connected.</td></tr>{% endfor %}
+  </table>
+  <p><a class="btn" href="/accounts/gmail/connect">Connect a Gmail account</a></p>
+</div>
+
+<h2>Sites you signed up to ({{ sites|length }})</h2>
+<p class="small muted">Found from welcome / verification emails. Correct usernames if needed and mark whether the account still exists — that decides whether "delete it yourself" is offered.</p>
+<div class="table-wrap"><table>
+  <tr><th>Site</th><th>Username</th><th>Evidence</th><th>Still exists?</th><th></th></tr>
+  {% for s in sites %}
+  <tr>
+    <td><a href="/findings?site={{ s.site_domain }}&decision=">{{ s.site_domain }}</a><div class="small muted">{{ s.gmail_account.email }}</div></td>
+    <td colspan="3">
+      <form method="post" action="/accounts/site/{{ s.id }}" class="row">
+        <div><input type="text" name="username" value="{{ s.username }}" aria-label="username"></div>
+        <div class="small muted">{{ s.evidence_subject }}<br>{{ s.evidence_date }}</div>
+        <div class="shrink"><select name="still_exists" aria-label="still exists">
+          <option value="" {% if s.still_exists is none %}selected{% endif %}>unknown</option>
+          <option value="yes" {% if s.still_exists %}selected{% endif %}>yes</option>
+          <option value="no" {% if s.still_exists == false %}selected{% endif %}>no</option></select></div>
+        <div class="shrink"><button class="small secondary">Save</button></div>
+      </form>
+    </td>
+    <td><form method="post" action="/accounts/site/{{ s.id }}/delete" class="inline"><button class="secondary small">Hide</button></form></td>
+  </tr>
+  {% else %}<tr><td colspan="5" class="muted">Nothing yet — connect Gmail and run a scan.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

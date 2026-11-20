@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="grid">
+  <div class="stat"><div class="n">{{ stats.seeds }}</div><div class="l">Search seeds</div></div>
+  <div class="stat"><div class="n">{{ stats.gmail }}</div><div class="l">Gmail accounts</div></div>
+  <div class="stat"><div class="n">{{ stats.site_accounts }}</div><div class="l">Sites you signed up to</div></div>
+  <div class="stat"><div class="n">{{ stats.findings }}</div><div class="l">Findings</div></div>
+  <div class="stat"><div class="n">{{ stats.pending_review }}</div><div class="l">Waiting for your review ({{ stats.high_risk_pending }} high risk)</div></div>
+  <div class="stat"><div class="n">{{ stats.to_remove }}</div><div class="l">Marked Remove</div></div>
+</div>
+
+<h2>Requests</h2>
+<div class="grid">
+  {% for s in ["Draft","Sent","Acknowledged","Removed","Rejected"] %}
+  <a class="stat" href="/requests?status={{ s }}" style="text-decoration:none;color:inherit"><div class="n">{{ by_status.get(s, 0) }}</div><div class="l">{{ s }}</div></a>
+  {% endfor %}
+</div>
+
+<h2>Run</h2>
+<div class="panel">
+  <p class="muted small">Order of work: add seeds → connect Gmail and scan → search → face match → classify → review → draft requests. Jobs run in the background; reload to see progress.
+  {% if running_jobs() %}<br><strong>Running now:</strong> {{ running_jobs() | join(", ") }}{% endif %}</p>
+  <div class="row">
+    <form method="post" action="/jobs/search" class="shrink"><button>1. Search the web</button></form>
+    <form method="post" action="/jobs/face-score" class="shrink"><button {% if not face_available %}disabled title="face matching not installed"{% endif %}>2. Face-match images</button></form>
+    <form method="post" action="/jobs/classify" class="shrink"><button>3. Classify findings</button></form>
+    <a class="btn secondary shrink" href="/findings">4. Review</a>
+  </div>
+</div>
+
+<h2>Recent activity</h2>
+<div class="table-wrap"><table>
+  <tr><th>When (UTC)</th><th>Job</th><th>Message</th></tr>
+  {% for l in logs %}<tr><td class="small">{{ l.created_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ l.job }}</td><td class="small">{{ l.message }}</td></tr>
+  {% else %}<tr><td colspan="3" class="muted">Nothing yet.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

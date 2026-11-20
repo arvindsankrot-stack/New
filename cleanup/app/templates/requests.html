@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Requests</h1>
+<div class="row panel">
+  <form method="get" action="/requests" class="row">
+    <div><label for="status">Status</label><select name="status" id="status"><option value="">all</option>{% for s in statuses %}<option {% if s == status %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+    <div class="shrink"><button>Filter</button></div>
+  </form>
+  <form method="post" action="/jobs/tracker" class="shrink"><button class="secondary">Re-check sent requests now</button></form>
+</div>
+<p class="small muted">Sent requests are re-checked automatically every few days. An item becomes <strong>Removed</strong> only when its page returns 404/410 or the content is no longer on it. Follow-ups are drafted after the waiting period with no reply — you still review and send them.</p>
+<div class="table-wrap"><table>
+  <tr><th>#</th><th>Request</th><th>Route</th><th>Status</th><th>Sent</th><th>Last check</th></tr>
+  {% for r in reqs %}
+  <tr><td>{{ r.id }}</td>
+    <td><a href="/requests/{{ r.id }}">{{ r.subject }}</a>{% if r.is_followup %} <span class="badge">follow-up</span>{% endif %}<div class="url muted">{{ r.finding.url }}</div></td>
+    <td class="small">{{ routes.get(r.route, r.route) }}</td>
+    <td><span class="badge st-{{ r.status }}">{{ r.status }}</span></td>
+    <td class="small">{{ r.sent_at.strftime('%Y-%m-%d') if r.sent_at else '' }}</td>
+    <td class="small">{{ r.last_checked_at.strftime('%Y-%m-%d') if r.last_checked_at else '' }}<div class="muted">{{ r.last_check_result }}</div></td></tr>
+  {% else %}<tr><td colspan="6" class="muted">No requests.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

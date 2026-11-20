@@ -1,0 +1,12 @@
+Subject: Removal request: post containing my personal information
+Hello r/{{ subreddit }} moderators,
+
+The following content in your subreddit contains {{ describe }}, posted without my consent:
+
+{{ url }}
+
+I am the person concerned and I would be grateful if you could remove it. I am happy to answer any questions you have to confirm this.
+
+Thank you for your time.
+
+{{ owner_name }}

@@ -1,0 +1,23 @@
+Subject: Erasure request under Article 17 GDPR
+Dear Data Protection Officer / Privacy Team of {{ site_name }},
+
+Date: {{ today }}
+
+I am writing to request the erasure of my personal data under Article 17 of the General Data Protection Regulation (EU) 2016/679.
+
+The personal data concerned is {{ describe }}, available at:
+
+{{ url }}
+{% if account_username %}
+Account name used on your service: {{ account_username }}
+{% endif %}
+I no longer consent to this data being published and it is no longer necessary for the purpose for which it was collected. Please:
+1. Erase this personal data, including copies and cached versions you control; and
+2. Confirm the erasure to me, as set out in Article 12(3), within one month of receiving this request.
+
+If you need further information to identify me or the data, please let me know.
+
+Kind regards,
+{{ owner_name }}
+{% if owner_address %}{{ owner_address }}
+{% endif %}

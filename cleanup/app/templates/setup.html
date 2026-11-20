@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Set up Cleanup{% endblock %}
+{% block content %}
+<h1>First-time setup</h1>
+<div class="panel">
+  <p>This app is for one person: you. Choose a strong password and set up two-factor authentication.</p>
+  {% for e in errors %}<p class="error">{{ e }}</p>{% endfor %}
+  <form method="post" action="/setup">
+    <label for="full_name">Your full name (used to sign removal requests)</label>
+    <input type="text" id="full_name" name="full_name" autocomplete="name">
+    <label for="password">Password (12+ characters, mixed types)</label>
+    <input type="password" id="password" name="password" required minlength="12" autocomplete="new-password">
+    <label for="password2">Repeat password</label>
+    <input type="password" id="password2" name="password2" required minlength="12" autocomplete="new-password">
+    <h2>Two-factor authentication</h2>
+    <p>Scan this QR code with an authenticator app (Google Authenticator, Aegis, 1Password…), or enter the key by hand.</p>
+    <div class="qr">{{ qr | safe }}</div>
+    <p class="small muted">Key: <code>{{ secret }}</code></p>
+    <label for="code">6-digit code from the app</label>
+    <input type="text" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" required>
+    <p><button>Finish setup</button></p>
+  </form>
+</div>
+{% endblock %}

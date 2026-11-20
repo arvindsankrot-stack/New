@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="same-origin">
+<meta name="htmx-config" content='{"includeIndicatorStyles": false}'>
+<title>{% block title %}Cleanup{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/htmx.min.js" defer></script>
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+{% if request.session.get('auth') %}
+<header>
+  <span class="brand">Cleanup</span>
+  <nav>
+    <a href="/">Dashboard</a>
+    <a href="/seeds">Seeds</a>
+    <a href="/accounts">Accounts</a>
+    <a href="/findings">Review</a>
+    <a href="/requests">Requests</a>
+    <a href="/sites">Sites</a>
+    <a href="/documents">Documents</a>
+    <a href="/settings">Settings</a>
+  </nav>
+  <form method="post" action="/logout" class="inline"><button class="secondary small">Sign out</button></form>
+</header>
+{% endif %}
+<main>
+{% if flash %}<div class="flash">{{ flash }}</div>{% endif %}
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

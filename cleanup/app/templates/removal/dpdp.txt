@@ -1,0 +1,25 @@
+Subject: Request for erasure of personal data under the Digital Personal Data Protection Act, 2023
+To the Grievance Officer, {{ site_name }}
+
+Date: {{ today }}
+
+I am a Data Principal and I am writing to request the erasure of my personal data under Section 12 of the Digital Personal Data Protection Act, 2023. To the extent this data is processed on the basis of my consent, please also treat this message as withdrawal of that consent under Section 6(4).
+
+The personal data concerned is {{ describe }}, available at:
+
+{{ url }}
+{% if account_username %}
+Account name used on your service: {{ account_username }}
+{% endif %}
+I request that you:
+1. Erase this personal data and remove it from public view, including copies and cached versions you control; and
+2. Confirm to me in writing once this has been done.
+
+If you consider that you are required to retain any part of this data, please tell me which part and the reason.
+
+Name: {{ owner_name }}
+{% if owner_address %}Address: {{ owner_address }}
+{% endif %}Contact: this email address
+
+Thank you.
+{{ owner_name }}

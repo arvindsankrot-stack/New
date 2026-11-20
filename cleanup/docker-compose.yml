@@ -1,0 +1,19 @@
+services:
+  cleanup:
+    build:
+      context: .
+      args:
+        WITH_FACE: "${WITH_FACE:-false}"
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+    volumes:
+      - cleanup-data:/data
+    # Bound to localhost only. To use from another device, put it behind a
+    # reverse proxy with HTTPS (and set BASE_URL + SECURE_COOKIES=true).
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+volumes:
+  cleanup-data:

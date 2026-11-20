@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Settings</h1>
+<div class="panel" style="border-color: var(--danger)">
+  <h2 style="margin-top:0">Wipe everything</h2>
+  <p>Revokes every connected Gmail token with Google, then permanently deletes the encrypted database (seeds, findings, requests, tokens) and all stored photos and documents. This cannot be undone. You will be sent back to first-time setup.</p>
+  <form method="post" action="/settings/wipe" data-confirm="Permanently delete everything?">
+    <div class="row">
+      <div><label for="ct">Type WIPE EVERYTHING</label><input type="text" id="ct" name="confirm_text" required autocomplete="off"></div>
+      <div><label for="pw">Password</label><input type="password" id="pw" name="password" required autocomplete="current-password"></div>
+      <div><label for="cd">Authenticator code</label><input type="text" id="cd" name="code" inputmode="numeric" required autocomplete="one-time-code"></div>
+      <div class="shrink"><button class="danger">Wipe everything</button></div>
+    </div>
+  </form>
+</div>
+<h2>Job log</h2>
+<div class="table-wrap"><table>
+  {% for l in logs %}<tr><td class="small">{{ l.created_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ l.job }}</td><td class="small">{{ l.message }}</td></tr>
+  {% else %}<tr><td class="muted">Empty.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

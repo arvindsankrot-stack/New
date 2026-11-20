@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<p><a href="/findings/{{ req.finding_id }}">← Finding</a> · <a href="/requests">All requests</a></p>
+<h1>Request #{{ req.id }} <span class="badge st-{{ req.status }}">{{ req.status }}</span></h1>
+<p class="small muted">{{ routes.get(req.route, req.route) }}{% if req.is_followup %} · follow-up to <a href="/requests/{{ req.parent_id }}">#{{ req.parent_id }}</a>{% endif %} · <span class="url">{{ req.finding.url }}</span></p>
+
+{% if wording %}<div class="flash error">This text contains wording that could read as a legal threat or a claim to be a lawyer ({{ wording | join(', ') }}). Edit it before sending.</div>{% endif %}
+
+{% if req.status == 'Draft' %}
+<div class="panel">
+  <form method="post" action="/requests/{{ req.id }}/save">
+    {% if req.channel != 'link' %}
+    <div class="row">
+      <div><label for="to">To (email)</label><input type="email" id="to" name="to_address" value="{{ req.to_address }}" placeholder="{% if req.channel == 'form' %}No email known — use the web form below, or add an address{% endif %}"></div>
+      <div><label for="from">Send from</label><select id="from" name="gmail_account_id"><option value="">choose…</option>{% for g in gmails %}<option value="{{ g.id }}" {% if req.gmail_account_id == g.id %}selected{% endif %}>{{ g.email }}</option>{% endfor %}</select></div>
+    </div>
+    {% endif %}
+    <label for="subject">Subject</label><input type="text" id="subject" name="subject" value="{{ req.subject }}">
+    <label for="body">Message</label><textarea class="body" id="body" name="body">{{ req.body }}</textarea>
+    <p><button class="secondary">Save draft</button> <button type="button" class="secondary" data-copy="#body">Copy text</button></p>
+  </form>
+</div>
+
+{% if req.channel == 'email' %}
+<div class="panel">
+  <h2 style="margin-top:0">Send</h2>
+  <form method="post" action="/requests/{{ req.id }}/send" data-confirm="Send this email now to {{ req.to_address }}{% if req.gmail_account %} from {{ req.gmail_account.email }}{% endif %}?">
+    {% if docs %}
+    <details><summary>Attach an ID document (only if the site explicitly asked)</summary>
+      <label for="doc">Document</label><select id="doc" name="attach_document_id"><option value="">none</option>{% for d in docs %}<option value="{{ d.id }}">{{ d.label }}</option>{% endfor %}</select>
+      <label class="check"><input type="checkbox" name="site_asked_for_id" value="yes"> The site explicitly asked me for proof of identity.</label>
+      <label class="check"><input type="checkbox" name="confirm_attachment" value="yes"> I confirm attaching this masked document.</label>
+    </details>
+    {% endif %}
+    <label class="check"><input type="checkbox" name="reviewed" value="yes" required> I have reviewed this message. It is sent in my own name.</label>
+    <p><button>Send now</button> <span class="small muted">Save the draft first if you edited it.</span></p>
+  </form>
+</div>
+{% else %}
+<div class="panel">
+  <h2 style="margin-top:0">Do it yourself</h2>
+  {% if req.action_url %}<p><a class="btn" href="{{ req.action_url }}" target="_blank" rel="noopener noreferrer">Open {{ 'form' if req.channel == 'form' else 'link' }}</a></p>
+  <p class="url muted small">{{ req.action_url }}</p>
+  {% else %}<p class="muted">No form URL known for this site. Find the site's privacy or support contact page, paste the text above, or add an email address and save to send it by email.</p>{% endif %}
+  <form method="post" action="/requests/{{ req.id }}/mark-sent">
+    <label class="check"><input type="checkbox" name="reviewed" value="yes" required> I completed this step myself.</label>
+    <p><button>Mark as sent</button></p>
+  </form>
+</div>
+{% endif %}
+<form method="post" action="/requests/{{ req.id }}/delete" data-confirm="Delete this draft?"><button class="secondary small">Delete draft</button></form>
+
+{% else %}
+<div class="panel">
+  <p><strong>To:</strong> {{ req.to_address or '—' }} {% if req.gmail_account %}· <strong>From:</strong> {{ req.gmail_account.email }}{% endif %} · <strong>Sent:</strong> {{ req.sent_at.strftime('%Y-%m-%d %H:%M') if req.sent_at else '—' }}</p>
+  <p><strong>{{ req.subject }}</strong></p>
+  <pre class="preview">{{ req.body }}</pre>
+  {% if req.action_url %}<p class="url small"><a href="{{ req.action_url }}" target="_blank" rel="noopener noreferrer">{{ req.action_url }}</a></p>{% endif %}
+</div>
+<div class="panel">
+  <p><strong>Last check:</strong> {{ req.last_checked_at.strftime('%Y-%m-%d %H:%M') if req.last_checked_at else 'never' }} — {{ req.last_check_result or '' }}</p>
+  {% if req.reply_seen_at %}<p>Reply seen {{ req.reply_seen_at.strftime('%Y-%m-%d') }}.</p>{% endif %}
+  {% if req.notes %}<pre class="preview small">{{ req.notes }}</pre>{% endif %}
+  <div class="row">
+    {% if req.status in ['Sent','Acknowledged'] %}<form method="post" action="/requests/{{ req.id }}/check" class="shrink"><button>Check now</button></form>{% endif %}
+    {% if req.status == 'Sent' %}<form method="post" action="/requests/{{ req.id }}/status" class="shrink"><input type="hidden" name="status" value="Acknowledged"><button class="secondary">Mark acknowledged</button></form>{% endif %}
+    {% if req.status in ['Sent','Acknowledged'] %}<form method="post" action="/requests/{{ req.id }}/status" class="shrink"><input type="hidden" name="status" value="Rejected"><button class="secondary">Mark rejected</button></form>{% endif %}
+    {% if req.status == 'Rejected' %}<form method="post" action="/requests/{{ req.id }}/status" class="shrink"><input type="hidden" name="status" value="Sent"><button class="secondary">Reopen</button></form>{% endif %}
+  </div>
+  <p class="small muted">Removed is set only by a check that finds the page or image gone.</p>
+</div>
+{% endif %}
+
+{% if children %}
+<h2>Follow-ups</h2>
+<ul>{% for c in children %}<li><a href="/requests/{{ c.id }}">#{{ c.id }} {{ c.subject }}</a> — {{ c.status }}</li>{% endfor %}</ul>
+{% endif %}
+{% endblock %}
